@@ -53,6 +53,7 @@ static char get_key_state(unsigned char key)
 
 static Chunk *chunk[4];
 
+
 void GLAPIENTRY
 MessageCallback( GLenum source,
                  GLenum type,
@@ -62,6 +63,7 @@ MessageCallback( GLenum source,
                  const GLchar* message,
                  const void* userParam )
 {
+    if(type == GL_DEBUG_TYPE_ERROR)
   fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
            ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
             type, severity, message );
@@ -72,7 +74,7 @@ static void setup()
     glEnable              ( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( MessageCallback, 0 );
     global_basic_shader = compile_shader("res/shader/basic_vertex.glsl", "res/shader/basic_fragment.glsl");
-    global_texture = create_texture("res/texture/grass.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE);
+    global_texture = create_texture("res/texture/grass.png", GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE);
 
     global_basic_model_loc = glGetUniformLocation(global_basic_shader, "u_Model");
     global_basic_view_loc = glGetUniformLocation(global_basic_shader, "u_View");
@@ -93,8 +95,8 @@ static void setup()
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     //glEnable(GL_BLEND);
     //
-    //glEnable(GL_DEPTH_TEST);
-    //glDepthFunc(GL_LESS);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
 
     int x, y;
     for(x = 0; x < 2; x++)
@@ -127,6 +129,8 @@ static void Resize(int w, int h)
     glEnable(GL_DEPTH_TEST);
 }
 
+static float time_passed = 0.0f;
+
 static void Render(void)
 {
     glClearColor(0.0f, 0.2f, 0.7f, 1.0f);
@@ -135,6 +139,7 @@ static void Render(void)
     clock_t time = clock();
     float delta = ((float) (time - last_frame)) / CLOCKS_PER_SEC;
     last_frame = time;
+    time_passed += delta;
 
     reset_mouse();
 
@@ -155,6 +160,13 @@ static void Render(void)
     glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
     glm_vec3_mul(direction, (vec3){delta * 6, -delta * 6, delta * 6}, direction);
     glm_vec3_add(global_camera_position, direction, global_camera_position);
+
+    //if(time_passed >= 1.0f)
+    //{
+    //    chunk[2]->blocks[12][12][12] = !chunk[2]->blocks[12][12][12];
+    //    regenerate_chunk_mesh(chunk[2]);
+    //    time_passed -= 1.0f;
+    //}
 
     //printf("x: %.1f  \ty: %.1f  \tz: %.1f\n", global_camera_position[0], global_camera_position[1], global_camera_position[2]);
     //printf("x: %.1f  \ty: %.1f  \tz: %.1f\n", global_camera_rotation[0] / GLM_PIf * 180.0f, global_camera_rotation[1] / GLM_PIf * 180.0f, global_camera_rotation[2] / GLM_PIf * 180.0f);
