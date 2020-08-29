@@ -20,11 +20,11 @@ Chunk *create_chunk(int x, int y)
     int z;
     for(x = 0; x < CHUNK_SIZE_XZ; ++x)
     {
-        for(y = 0; y < 3; ++y)
+        for(y = 0; y < CHUNK_SIZE_Y; ++y)
         {
             for(z = 0; z < CHUNK_SIZE_XZ; ++z)
             {
-                chunk->blocks[x][y][z] = 1;
+                chunk->blocks[x][y][z] = (y < 3 ? 1 : 0) || (y == 3 && (x / 2) % 2 && ((z / 2) % 2 == 0));
             }
         }
     }
