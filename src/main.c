@@ -14,6 +14,10 @@
 #include "Util.h"
 #include "Globals.h"
 
+#include "Mesh.h"
+#include "Chunk.h"
+#include "Texture.h"
+
 #define WINDOW_TITLE "Minecraft Clone"
 
 static int width = 1920, height = 1080;
@@ -47,41 +51,33 @@ static char get_key_state(unsigned char key)
     return key_states[key];
 }
 
-unsigned int basic_shader;
+static Chunk *chunk[4];
 
-unsigned int vao, vb, ib;
+void GLAPIENTRY
+MessageCallback( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam )
+{
+  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+            type, severity, message );
+}
 
 static void setup()
 {
-    basic_shader = compile_shader("res/shader/basic_vertex.glsl", "res/shader/basic_fragment.glsl");
+    glEnable              ( GL_DEBUG_OUTPUT );
+    glDebugMessageCallback( MessageCallback, 0 );
+    global_basic_shader = compile_shader("res/shader/basic_vertex.glsl", "res/shader/basic_fragment.glsl");
+    global_texture = create_texture("res/texture/grass.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE);
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    
-    glGenBuffers(1, &vb);
-    glBindBuffer(GL_ARRAY_BUFFER, vb);
-
-    float verticies[] = {
-        -0.5f, -0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
-         0.5f,  0.5f, 0.0f,
-        -0.5f,  0.5f, 0.0f,
-    };
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verticies), verticies, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
-
-    glGenBuffers(1, &ib);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
-
-    unsigned char indicies[] = {
-        0, 1, 2,
-        2, 3, 0,
-    };
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_STATIC_DRAW);
-
-    glBindVertexArray(0);
+    global_basic_model_loc = glGetUniformLocation(global_basic_shader, "u_Model");
+    global_basic_view_loc = glGetUniformLocation(global_basic_shader, "u_View");
+    global_basic_projection_loc = glGetUniformLocation(global_basic_shader, "u_Projection");
+    global_basic_texture_loc = glGetUniformLocation(global_basic_shader, "u_Texture");
 
     glm_vec3_zero(global_camera_position);
     glm_vec3_zero(global_camera_rotation);
@@ -90,20 +86,34 @@ static void setup()
 
     last_frame = clock();
     memset(key_states, 0, sizeof(key_states));
-    //glEnable(GL_CULL_FACE);
-    //glCullFace(GL_BACK);
-    //glFrontFace(GL_CCW);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
     //
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     //glEnable(GL_BLEND);
     //
     //glEnable(GL_DEPTH_TEST);
     //glDepthFunc(GL_LESS);
+
+    int x, y;
+    for(x = 0; x < 2; x++)
+        for(y = 0; y < 2; y++)
+            chunk[x + y * 2] = create_chunk(-x, -y);
 }
 
 static void mouse_motion(int x, int y)
 {
+    global_camera_rotation[0] += glm_rad(((float)y - height / 2) / 10);
+    global_camera_rotation[0] = fmaxf(fminf(glm_rad(85.f), global_camera_rotation[0]), glm_rad(-85.f));
+    global_camera_rotation[1] += glm_rad(((float)x - width / 2) / 10);
+    global_camera_rotation[1] = fmodf(global_camera_rotation[1], GLM_PIf * 2);
+}
 
+static void reset_mouse()
+{
+    glutWarpPointer(width / 2, height / 2);
+    glutSetCursor(GLUT_CURSOR_NONE);
 }
 
 static void Resize(int w, int h)
@@ -126,6 +136,8 @@ static void Render(void)
     float delta = ((float) (time - last_frame)) / CLOCKS_PER_SEC;
     last_frame = time;
 
+    reset_mouse();
+
     vec3 direction = {0, 0, 0};
     if(get_key_state('a'))
         direction[0] += 1.0f;
@@ -135,31 +147,28 @@ static void Render(void)
         direction[2] += 1.0f;
     if(get_key_state('s'))
         direction[2] -= 1.0f;
+    if(get_key_state(' '))
+        direction[1] += 1.0f;
+    if(GetKeyState(VK_SHIFT) & 0x8000)
+        direction[1] -= 1.0f;
     glm_normalize(direction);
-    glm_vec3_mul(direction, (vec3){delta, delta, delta}, direction);
-    
+    glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
+    glm_vec3_mul(direction, (vec3){delta * 6, -delta * 6, delta * 6}, direction);
     glm_vec3_add(global_camera_position, direction, global_camera_position);
 
     //printf("x: %.1f  \ty: %.1f  \tz: %.1f\n", global_camera_position[0], global_camera_position[1], global_camera_position[2]);
+    //printf("x: %.1f  \ty: %.1f  \tz: %.1f\n", global_camera_rotation[0] / GLM_PIf * 180.0f, global_camera_rotation[1] / GLM_PIf * 180.0f, global_camera_rotation[2] / GLM_PIf * 180.0f);
 
-    glm_perspective(70.0f, (float)width / height, 0.01f, 1000.0f, global_projection);
+    glm_perspective(glm_rad(70.0f), (float)width / height, 0.01f, 100.0f, global_projection);
     glm_mat4_identity(global_view);
+    mat4 rotation;
+    glm_euler_xyz(global_camera_rotation, rotation);
+    glm_mul_rot(global_view, rotation, global_view);
     glm_translate(global_view, global_camera_position);
 
-    mat4 model = GLM_MAT4_IDENTITY_INIT;
-
-    glUseProgram(basic_shader);
-    int model_loc = glGetUniformLocation(basic_shader, "u_Model");
-    int view_loc = glGetUniformLocation(basic_shader, "u_View");
-    int projection_loc = glGetUniformLocation(basic_shader, "u_Projection");
-    glUniformMatrix4fv(model_loc, 1, GL_FALSE, model[0]);
-    glUniformMatrix4fv(view_loc, 1, GL_FALSE, global_view[0]);
-    glUniformMatrix4fv(projection_loc, 1, GL_FALSE, global_projection[0]);
-
-    glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, (void*)0);
-    glBindVertexArray(0);
-        
+    int i;
+    for(i = 0; i < 4; i++)
+        render_chunk(chunk[i]);
 
     glutSwapBuffers();
     glutPostRedisplay();
