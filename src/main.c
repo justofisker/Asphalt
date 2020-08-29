@@ -62,15 +62,15 @@ static void setup()
     glBindBuffer(GL_ARRAY_BUFFER, vb);
 
     float verticies[] = {
-        -0.5f, -0.5f,
-         0.5f, -0.5f,
-         0.5f,  0.5f,
-        -0.5f,  0.5f,
+        -0.5f, -0.5f, 0.0f,
+         0.5f, -0.5f, 0.0f,
+         0.5f,  0.5f, 0.0f,
+        -0.5f,  0.5f, 0.0f,
     };
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(verticies), verticies, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 
     glGenBuffers(1, &ib);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
@@ -128,9 +128,9 @@ static void Render(void)
 
     vec3 direction = {0, 0, 0};
     if(get_key_state('a'))
-        direction[0] -= 1.0f;
-    if(get_key_state('d'))
         direction[0] += 1.0f;
+    if(get_key_state('d'))
+        direction[0] -= 1.0f;
     if(get_key_state('w'))
         direction[2] += 1.0f;
     if(get_key_state('s'))
@@ -142,9 +142,19 @@ static void Render(void)
 
     //printf("x: %.1f  \ty: %.1f  \tz: %.1f\n", global_camera_position[0], global_camera_position[1], global_camera_position[2]);
 
-    glm_perspective(70.0f, (float)height / width, 0.01f, 1000.0f, global_projection);
+    glm_perspective(70.0f, (float)width / height, 0.01f, 1000.0f, global_projection);
     glm_mat4_identity(global_view);
     glm_translate(global_view, global_camera_position);
+
+    mat4 model = GLM_MAT4_IDENTITY_INIT;
+
+    glUseProgram(basic_shader);
+    int model_loc = glGetUniformLocation(basic_shader, "u_Model");
+    int view_loc = glGetUniformLocation(basic_shader, "u_View");
+    int projection_loc = glGetUniformLocation(basic_shader, "u_Projection");
+    glUniformMatrix4fv(model_loc, 1, GL_FALSE, model[0]);
+    glUniformMatrix4fv(view_loc, 1, GL_FALSE, global_view[0]);
+    glUniformMatrix4fv(projection_loc, 1, GL_FALSE, global_projection[0]);
 
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, (void*)0);
