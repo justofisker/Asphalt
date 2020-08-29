@@ -11,9 +11,14 @@
 #include <string.h>
 #include <time.h>
 
+#include "Util.h"
+#include "Globals.h"
+
 #define WINDOW_TITLE "Minecraft Clone"
 
 static int width = 1920, height = 1080;
+
+clock_t last_frame;
 
 static char key_states[256];
 static void KeyboardEvent(unsigned char key, char is_pressed)
@@ -42,18 +47,58 @@ static char get_key_state(unsigned char key)
     return key_states[key];
 }
 
+unsigned int basic_shader;
+
+unsigned int vao, vb, ib;
+
 static void setup()
 {
-    memset(key_states, 0, sizeof(key_states));
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
+    basic_shader = compile_shader("res/shader/basic_vertex.glsl", "res/shader/basic_fragment.glsl");
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
     
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    glGenBuffers(1, &vb);
+    glBindBuffer(GL_ARRAY_BUFFER, vb);
+
+    float verticies[] = {
+        -0.5f, -0.5f,
+         0.5f, -0.5f,
+         0.5f,  0.5f,
+        -0.5f,  0.5f,
+    };
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verticies), verticies, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
+
+    glGenBuffers(1, &ib);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
+
+    unsigned char indicies[] = {
+        0, 1, 2,
+        2, 3, 0,
+    };
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+
+    glm_vec3_zero(global_camera_position);
+    glm_vec3_zero(global_camera_rotation);
+    glm_mat4_identity(global_view);
+    glm_mat4_identity(global_projection);
+
+    last_frame = clock();
+    memset(key_states, 0, sizeof(key_states));
+    //glEnable(GL_CULL_FACE);
+    //glCullFace(GL_BACK);
+    //glFrontFace(GL_CCW);
+    //
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glEnable(GL_BLEND);
+    //
+    //glEnable(GL_DEPTH_TEST);
+    //glDepthFunc(GL_LESS);
 }
 
 static void mouse_motion(int x, int y)
@@ -76,6 +121,35 @@ static void Render(void)
 {
     glClearColor(0.0f, 0.2f, 0.7f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    clock_t time = clock();
+    float delta = ((float) (time - last_frame)) / CLOCKS_PER_SEC;
+    last_frame = time;
+
+    vec3 direction = {0, 0, 0};
+    if(get_key_state('a'))
+        direction[0] -= 1.0f;
+    if(get_key_state('d'))
+        direction[0] += 1.0f;
+    if(get_key_state('w'))
+        direction[2] += 1.0f;
+    if(get_key_state('s'))
+        direction[2] -= 1.0f;
+    glm_normalize(direction);
+    glm_vec3_mul(direction, (vec3){delta, delta, delta}, direction);
+    
+    glm_vec3_add(global_camera_position, direction, global_camera_position);
+
+    //printf("x: %.1f  \ty: %.1f  \tz: %.1f\n", global_camera_position[0], global_camera_position[1], global_camera_position[2]);
+
+    glm_perspective(70.0f, (float)height / width, 0.01f, 1000.0f, global_projection);
+    glm_mat4_identity(global_view);
+    glm_translate(global_view, global_camera_position);
+
+    glBindVertexArray(vao);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, (void*)0);
+    glBindVertexArray(0);
+        
 
     glutSwapBuffers();
     glutPostRedisplay();

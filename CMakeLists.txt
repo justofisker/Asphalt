@@ -6,6 +6,10 @@ enable_testing()
 
 add_executable(MinecraftClone
     "src/main.c"
+    "src/Chunk.c"
+    "src/Mesh.c"
+    "src/Util.c"
+    "src/Globals.c"
     "src/stb_image.c"
     "thirdparty/glad/src/glad.c"
     )
