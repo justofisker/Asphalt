@@ -329,7 +329,7 @@ void free_chunk(Chunk *chunk)
 
 #define VIEW_DISTANCE 64
 #define CHUNK_ARR_SIZE VIEW_DISTANCE
-#define MAX_CHUNKS_PER_FRAME 7
+#define MAX_CHUNKS_PER_FRAME 6
 static Chunk *chunks[CHUNK_ARR_SIZE][CHUNK_ARR_SIZE];
 
 Chunk *get_chunk(int x, int y)
@@ -351,26 +351,11 @@ void set_chunk(int x, int y, Chunk* chunk)
 void generate_chunks()
 {
     memset(chunks, 0, sizeof(chunks));
-    //int x, y;
-    //for(x = 0; x < VIEW_DISTANCE; x++)
-    //{
-    //    for(y = 0; y < VIEW_DISTANCE; y++)
-    //    {
-    //        set_chunk(x - VIEW_DISTANCE / 2, y - VIEW_DISTANCE / 2, create_chunk(x - VIEW_DISTANCE / 2, y - VIEW_DISTANCE / 2));
-    //    }
-    //}
-    //for(x = 0; x < VIEW_DISTANCE; x++)
-    //{
-    //    for(y = 0; y < VIEW_DISTANCE; y++)
-    //    {
-    //        get_chunk(x - VIEW_DISTANCE / 2, y - VIEW_DISTANCE / 2)->mesh = create_mesh_from_chunk(get_chunk(x - VIEW_DISTANCE / 2, y - VIEW_DISTANCE / 2));
-    //    }
-    //}
 }
 
 void render_chunks()
 {
-    glm_perspective(glm_rad(70.0f), (float)global_width / global_height, 0.01f, 1000.0f, global_projection);
+    glm_perspective(glm_rad(70.0f), (float)global_width / global_height, 0.01f, 5000.0f, global_projection);
     glm_mat4_identity(global_view);
     mat4 rotation;
     glm_euler_xyz(global_camera_rotation, rotation);
@@ -386,28 +371,40 @@ void render_chunks()
     int x, y;
 
     int chunks_generated = 0;
-    int cur_x = -global_camera_position[0] / CHUNK_SIZE_XZ;
-    int cur_y = -global_camera_position[2] / CHUNK_SIZE_XZ;
-    for(x = cur_x - VIEW_DISTANCE / 2; x < cur_x + VIEW_DISTANCE / 2; x++)
+    int cur_x = (int)(-global_camera_position[0]) / CHUNK_SIZE_XZ;
+    int cur_y = (int)(-global_camera_position[2]) / CHUNK_SIZE_XZ;
     {
-        for(y = cur_y - VIEW_DISTANCE / 2; y < cur_y + VIEW_DISTANCE / 2; y++)
-        {
-            if(chunks_generated >= MAX_CHUNKS_PER_FRAME)
-            {
-                x = cur_x + VIEW_DISTANCE / 2;
-                break;
+        int x,y,dx,dy;
+        x = 0;
+        y = 0;
+        dx = 0;
+        dy = -1;
+        int t = CHUNK_ARR_SIZE;
+        int maxI = t*t;
+        for(int i =0; i < maxI; i++){
+            if ((-CHUNK_ARR_SIZE/2 <= x) && (x <= CHUNK_ARR_SIZE/2) && (-CHUNK_ARR_SIZE/2 <= y) && (y <= CHUNK_ARR_SIZE/2)){
+                if(!get_chunk(x + cur_x, y + cur_y))
+                {
+                    Chunk *chunk = create_chunk(x + cur_x, y + cur_y);
+                    set_chunk(x + cur_x, y + cur_y, chunk);
+                    chunk->mesh = create_mesh_from_chunk(chunk);
+                    chunks_generated++;
+                    if(chunks_generated >= MAX_CHUNKS_PER_FRAME)
+                        goto render;
+                }
             }
-            if(!get_chunk(x, y))
-            {
-                Chunk *chunk = create_chunk(x, y);
-                set_chunk(x, y, chunk);
-                chunk->mesh = create_mesh_from_chunk(chunk);
-                chunks_generated++;
+            if( (x == y) || ((x < 0) && (x == -y)) || ((x > 0) && (x == 1-y))){
+                t = dx;
+                dx = -dy;
+                dy = t;
             }
+            x += dx;
+            y += dy;
         }
+
     }
 
-    for(x = 0; x < CHUNK_ARR_SIZE; x++)
+    render: for(x = 0; x < CHUNK_ARR_SIZE; x++)
     {
         for(y = 0; y < CHUNK_ARR_SIZE; y++)
         {
