@@ -313,41 +313,59 @@ void render_chunk(Chunk *chunk)
     glBindVertexArray(0);
 }
 
+void freeArray(unsigned int **a, int m) {
+    int i;
+    for (i = 0; i < m; ++i) {
+        free(a[i]);
+    }
+    free(a);
+}
+
 void free_chunk(Chunk *chunk)
 {
     free_mesh(chunk->mesh);
     free(chunk);
 }
 
-static int view_distance;
-static Chunk **chunks;
+#define VIEW_DISTANCE 64
+#define CHUNK_ARR_SIZE VIEW_DISTANCE
+#define MAX_CHUNKS_PER_FRAME 7
+static Chunk *chunks[CHUNK_ARR_SIZE][CHUNK_ARR_SIZE];
 
 Chunk *get_chunk(int x, int y)
 {
-    int i;
-    for(i = 0; i < view_distance * view_distance; i++)
-        if(chunks[i]->x == x && chunks[i]->y == y)
-            return chunks[i];
+    Chunk* chunk = chunks[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)];
+    if(chunk && chunk->x == x && chunk->y == y)
+        return chunk;
     return 0;
 }
 
-void generate_chunks(int _view_distance)
+void set_chunk(int x, int y, Chunk* chunk)
 {
-    view_distance = _view_distance;
-    chunks = malloc(sizeof(Chunk*) * view_distance * view_distance);
-    int i;
-    int x, y;
-    for(x = 0; x < view_distance; x++)
-    {
-        for(y = 0; y < view_distance; y++)
-        {
-            chunks[x + y * view_distance] = create_chunk(x - view_distance / 2, y - view_distance / 2);
-        }
-    }
-    for(i = 0; i < view_distance * view_distance; i++)
-    {
-        chunks[i]->mesh = create_mesh_from_chunk(chunks[i]);
-    }
+    //printf("x: %d y: %d\tc x: %d y: %d\n", x, y, mod(x, CHUNK_ARR_SIZE), mod(y, CHUNK_ARR_SIZE));
+    if(chunks[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)])
+        free_chunk(chunks[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)]);
+    chunks[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)] = chunk;
+}
+
+void generate_chunks()
+{
+    memset(chunks, 0, sizeof(chunks));
+    //int x, y;
+    //for(x = 0; x < VIEW_DISTANCE; x++)
+    //{
+    //    for(y = 0; y < VIEW_DISTANCE; y++)
+    //    {
+    //        set_chunk(x - VIEW_DISTANCE / 2, y - VIEW_DISTANCE / 2, create_chunk(x - VIEW_DISTANCE / 2, y - VIEW_DISTANCE / 2));
+    //    }
+    //}
+    //for(x = 0; x < VIEW_DISTANCE; x++)
+    //{
+    //    for(y = 0; y < VIEW_DISTANCE; y++)
+    //    {
+    //        get_chunk(x - VIEW_DISTANCE / 2, y - VIEW_DISTANCE / 2)->mesh = create_mesh_from_chunk(get_chunk(x - VIEW_DISTANCE / 2, y - VIEW_DISTANCE / 2));
+    //    }
+    //}
 }
 
 void render_chunks()
@@ -365,10 +383,38 @@ void render_chunks()
     glUniformMatrix4fv(global_basic_projection_loc, 1, GL_FALSE, global_projection[0]);
     glUniform1i(global_basic_texture_loc, 0);
 
-    int i;
-    for(i = 0; i < view_distance * view_distance; i++)
+    int x, y;
+
+    int chunks_generated = 0;
+    int cur_x = -global_camera_position[0] / CHUNK_SIZE_XZ;
+    int cur_y = -global_camera_position[2] / CHUNK_SIZE_XZ;
+    for(x = cur_x - VIEW_DISTANCE / 2; x < cur_x + VIEW_DISTANCE / 2; x++)
     {
-        if(chunks[i])
-            render_chunk(chunks[i]);
+        for(y = cur_y - VIEW_DISTANCE / 2; y < cur_y + VIEW_DISTANCE / 2; y++)
+        {
+            if(chunks_generated >= MAX_CHUNKS_PER_FRAME)
+            {
+                x = cur_x + VIEW_DISTANCE / 2;
+                break;
+            }
+            if(!get_chunk(x, y))
+            {
+                Chunk *chunk = create_chunk(x, y);
+                set_chunk(x, y, chunk);
+                chunk->mesh = create_mesh_from_chunk(chunk);
+                chunks_generated++;
+            }
+        }
+    }
+
+    for(x = 0; x < CHUNK_ARR_SIZE; x++)
+    {
+        for(y = 0; y < CHUNK_ARR_SIZE; y++)
+        {
+            if(chunks[x][y])
+            {
+                render_chunk(chunks[x][y]);
+            }
+        }
     }
 }

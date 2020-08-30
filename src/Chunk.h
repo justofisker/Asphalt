@@ -20,7 +20,7 @@ void render_chunk(Chunk *chunk);
 void free_chunk(Chunk *chunk);
 
 Chunk *get_chunk(int x, int y);
-void generate_chunks(int view_distance);
+void generate_chunks();
 void render_chunks();
 
 #endif // CHUNK_H

@@ -49,10 +49,6 @@ static char get_key_state(unsigned char key)
     return key_states[key];
 }
 
-#define VIEW_DISTANCE 16
-static Chunk *chunk[VIEW_DISTANCE * VIEW_DISTANCE];
-
-
 void GLAPIENTRY
 MessageCallback( GLenum source,
                  GLenum type,
@@ -98,7 +94,7 @@ static void setup()
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    generate_chunks(VIEW_DISTANCE);
+    generate_chunks();
 }
 
 static void mouse_motion(int x, int y)
@@ -141,7 +137,7 @@ static void Render(void)
 
     reset_mouse();
 
-    float speed = 15.0f;
+    float speed = 150.0f;
     vec3 direction = {0, 0, 0};
     if(get_key_state('a'))
         direction[0] += 1.0f;

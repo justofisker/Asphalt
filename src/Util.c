@@ -144,3 +144,9 @@ float perlin2d(float x, float y, float freq, int depth)
 
     return fin/div;
 }
+
+int mod(int a, int b)
+{
+    int r = a % b;
+    return r < 0 ? r + b : r;
+}
