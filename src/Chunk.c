@@ -388,6 +388,18 @@ void render_chunks()
                     Chunk *chunk = create_chunk(x + cur_x, y + cur_y);
                     set_chunk(x + cur_x, y + cur_y, chunk);
                     chunk->mesh = create_mesh_from_chunk(chunk);
+                    chunk = get_chunk(x + cur_x + 1, y + cur_y);
+                    if(chunk)
+                        regenerate_chunk_mesh(chunk);
+                    chunk = get_chunk(x + cur_x - 1, y + cur_y);
+                    if(chunk)
+                        regenerate_chunk_mesh(chunk);
+                    chunk = get_chunk(x + cur_x, y + cur_y + 1);
+                    if(chunk)
+                        regenerate_chunk_mesh(chunk);
+                    chunk = get_chunk(x + cur_x, y + cur_y - 1);
+                    if(chunk)
+                        regenerate_chunk_mesh(chunk);
                     chunks_generated++;
                     float frame_time = 1.f / global_target_framerate;
                     if(((clock() - global_last_frame) / (float)CLOCKS_PER_SEC) + 0.003 >= frame_time)
