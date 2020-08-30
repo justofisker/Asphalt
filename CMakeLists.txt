@@ -12,6 +12,7 @@ add_executable(MinecraftClone
     "src/Globals.c"
     "src/Texture.c"
     "src/stb_image.c"
+    "src/Block.c"
     "thirdparty/glad/src/glad.c"
     )
 

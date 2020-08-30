@@ -2,8 +2,9 @@
 #include <glad/glad.h>
 #include <stdlib.h>
 #include <stb/stb_image.h>
+#include <stdio.h>
 
-Texture* create_texture(const char* file_path, int texture_min_filter, int texture_mag_filter, int texture_wrap)
+Texture* create_texture(const char* file_path, int texture_min_filter, int texture_mag_filter, int texture_wrap, char mipmap, float lod_bias)
 {
     Texture *texture = malloc(sizeof(Texture));
 
@@ -21,6 +22,13 @@ Texture* create_texture(const char* file_path, int texture_min_filter, int textu
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texture_wrap);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_buffer);
+
+    if(mipmap)
+    {
+        printf("Mipmap!\n");
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, lod_bias);
+    }
     
     glBindTexture(GL_TEXTURE_2D, 0);
 

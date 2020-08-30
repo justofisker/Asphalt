@@ -17,6 +17,7 @@
 #include "Mesh.h"
 #include "Chunk.h"
 #include "Texture.h"
+#include "Block.h"
 
 #define WINDOW_TITLE "Minecraft Clone"
 
@@ -70,7 +71,7 @@ static void setup()
     glEnable              ( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( MessageCallback, 0 );
     global_basic_shader = compile_shader("res/shader/basic_vertex.glsl", "res/shader/basic_fragment.glsl");
-    global_texture = create_texture("res/texture/grass.png", GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE);
+    global_texture = create_texture("res/texture/blocks.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, 0, 0.0f);
 
     global_basic_model_loc = glGetUniformLocation(global_basic_shader, "u_Model");
     global_basic_view_loc = glGetUniformLocation(global_basic_shader, "u_View");
@@ -88,14 +89,15 @@ static void setup()
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
-    //
+
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     //glEnable(GL_BLEND);
-    //
+
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
     generate_chunks();
+    setup_blocks();
 }
 
 static void mouse_motion(int x, int y)
@@ -151,7 +153,7 @@ static void Render(void)
     if(in_game && !paused)
     {
         reset_mouse();
-        float speed = 150.0f;
+        float speed = 10.0f;
         vec3 direction = {0, 0, 0};
         if(get_key_state('a'))
             direction[0] += 1.0f;
@@ -179,7 +181,6 @@ static void Render(void)
     frames++;
     if(time_passed >= 1.0f)
     {
-        printf("fps: %d\n", frames);
         frames = 0;
         time_passed -= 1.0f;
     }
