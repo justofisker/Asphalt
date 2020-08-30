@@ -18,6 +18,7 @@
 #include "Chunk.h"
 #include "Texture.h"
 #include "Block.h"
+#include "Sprite.h"
 
 #define WINDOW_TITLE "Minecraft Clone"
 
@@ -66,6 +67,8 @@ MessageCallback( GLenum source,
             type, severity, message );
 }
 
+Sprite *crosshair;
+
 static void setup()
 {
     glEnable              ( GL_DEBUG_OUTPUT );
@@ -78,8 +81,10 @@ static void setup()
     global_basic_projection_loc = glGetUniformLocation(global_basic_shader, "u_Projection");
     global_basic_texture_loc = glGetUniformLocation(global_basic_shader, "u_Texture");
 
+    crosshair = create_sprite(create_texture("res/texture/crosshair.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, 0, 0.0f));
+
     glm_vec3_zero(global_camera_position);
-    global_camera_position[1] -= 40.0f;
+    global_camera_position[1] = 40.0f;
     glm_vec3_zero(global_camera_rotation);
     glm_mat4_identity(global_view);
     glm_mat4_identity(global_projection);
@@ -90,8 +95,8 @@ static void setup()
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
@@ -129,6 +134,10 @@ static void Resize(int w, int h)
 static float time_passed = 0.0f;
 static int frames = 0;
 static HWND self = 0;
+static char just_left_clicked = 0;
+static char just_right_clicked = 0;
+static char left_mouse = 0;
+static char right_mouse = 0;
 
 static void Render(void)
 {
@@ -153,23 +162,23 @@ static void Render(void)
     if(in_game && !paused)
     {
         reset_mouse();
-        float speed = 30.0f;
+        float speed = 10.0f;
         vec3 direction = {0, 0, 0};
         if(get_key_state('a'))
-            direction[0] += 1.0f;
-        if(get_key_state('d'))
             direction[0] -= 1.0f;
+        if(get_key_state('d'))
+            direction[0] += 1.0f;
         if(get_key_state('w'))
-            direction[2] += 1.0f;
-        if(get_key_state('s'))
             direction[2] -= 1.0f;
+        if(get_key_state('s'))
+            direction[2] += 1.0f;
         if(get_key_state(' '))
             direction[1] += 1.0f;
         if(GetKeyState(VK_SHIFT) & 0x8000)
             direction[1] -= 1.0f;
         glm_normalize(direction);
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
-        glm_vec3_mul(direction, (vec3){delta * speed, -delta * speed, delta * speed}, direction);
+        glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
         glm_vec3_add(global_camera_position, direction, global_camera_position);
     }
     else
@@ -184,11 +193,68 @@ static void Render(void)
         frames = 0;
         time_passed -= 1.0f;
     }
+
+    // Raycast
+    if(in_game && !paused && just_left_clicked){
+        float ray_inc = 0.05f;
+        float max_distance = 10.0f;
+
+        vec3 origin;
+        vec3 direction = {0.0f, 0.0f, -1.0f};
+
+        glm_vec3_copy(global_camera_position, origin);
+        glm_vec3_rotate(direction, -global_camera_rotation[0], (vec3){1.0f, 0.0f, 0.0f});
+        glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.0f, 1.0f, 0.0f});
+        glm_normalize(direction);
+        glm_vec3_mul(direction, (vec3){ray_inc, ray_inc, ray_inc}, direction);
+
+        {
+            vec3 target = {0.0f, 0.0f, 0.0f};
+            while((target[0]*target[0] + target[1]*target[1] + target[2]*target[2]) < max_distance*max_distance)
+            {
+                glm_vec3_add(target, direction, target);
+
+                vec3 position;
+                glm_vec3_add(target, origin, position);
+
+                int id = get_block_id_at(floorf(position[0]), floorf(position[1]), floorf(position[2]));
+
+                if(id)
+                {
+                    set_block_at(floorf(position[0]), floorf(position[1]), floorf(position[2]), 0);
+                    break;
+                }
+            }
+        }
+    }
     
     render_chunks();
 
+    crosshair->position[0] = global_width / 2;
+    crosshair->position[1] = global_height / 2;
+    draw_sprite(crosshair);
+
+    just_left_clicked = 0;
+    just_right_clicked = 0;
+
     glutSwapBuffers();
     glutPostRedisplay();
+}
+
+static void mouse_func(int state, int button, int x, int y)
+{
+    if(state == GLUT_LEFT_BUTTON)
+    {
+        if(button == GLUT_DOWN)
+            just_left_clicked = 1;
+        left_mouse = button == GLUT_DOWN;
+    }
+    if(state == GLUT_RIGHT_BUTTON)
+    {
+        if(button == GLUT_DOWN)
+            just_right_clicked = 1;
+        right_mouse = button == GLUT_DOWN;
+    }
 }
 
 int main(int argc, char **argv)
@@ -211,6 +277,7 @@ int main(int argc, char **argv)
     glutKeyboardUpFunc(KeyboardUp);
     glutPassiveMotionFunc(mouse_motion);
     glutMotionFunc(mouse_motion);
+    glutMouseFunc(mouse_func);
 
     if(!gladLoadGL()) {
         printf("Something went wrong!\n");

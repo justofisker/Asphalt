@@ -22,5 +22,7 @@ void free_chunk(Chunk *chunk);
 Chunk *get_chunk(int x, int y);
 void generate_chunks();
 void render_chunks();
+int get_block_id_at(int x, int y, int z);
+void set_block_at(int x, int y, int z, int block);
 
 #endif // CHUNK_H

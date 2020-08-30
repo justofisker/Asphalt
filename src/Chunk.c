@@ -229,22 +229,6 @@ void regenerate_chunk_mesh(Chunk *chunk)
     free_mesh(chunk->mesh);
     chunk->mesh = create_mesh_from_chunk(chunk);
     return;
-
-    //Vertex *verticies;
-    //Index *indicies;
-    //
-    //int vertex_count;
-    //int index_count;
-    //
-    //create_vertex_index_buffer(chunk, &verticies, &vertex_count, &indicies, &index_count);
-    //
-    //glBindVertexArray(chunk->mesh->array_object);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * vertex_count, verticies, GL_DYNAMIC_DRAW);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Index) * index_count, indicies, GL_DYNAMIC_DRAW);
-    //glBindVertexArray(0);
-    //
-    //free(indicies);
-    //free(verticies);
 }
 
 void render_chunk(Chunk *chunk)
@@ -302,7 +286,7 @@ void render_chunks()
     mat4 rotation;
     glm_euler_xyz(global_camera_rotation, rotation);
     glm_mul_rot(global_view, rotation, global_view);
-    glm_translate(global_view, global_camera_position);
+    glm_translate(global_view, (vec3){-global_camera_position[0], -global_camera_position[1], -global_camera_position[2]});
 
     glUseProgram(global_basic_shader);
     bind_texture(global_texture, 0);
@@ -313,8 +297,8 @@ void render_chunks()
     int x, y;
 
     int chunks_generated = 0;
-    int cur_x = (int)(-global_camera_position[0]) / CHUNK_SIZE_XZ;
-    int cur_y = (int)(-global_camera_position[2]) / CHUNK_SIZE_XZ;
+    int cur_x = (int)(global_camera_position[0]) / CHUNK_SIZE_XZ;
+    int cur_y = (int)(global_camera_position[2]) / CHUNK_SIZE_XZ;
     if(!dontGenerate || last_x != cur_x || last_y != cur_y)
     {
         last_x = cur_x;
@@ -381,6 +365,58 @@ void render_chunks()
             {
                 render_chunk(chunks[x][y]);
             }
+        }
+    }
+}
+
+int get_block_id_at(int x, int y, int z)
+{
+    if(y < 0 || y >= CHUNK_SIZE_Y)
+        return 0;
+    Chunk *chunk = get_chunk(floorf((float)x / CHUNK_SIZE_XZ), floorf((float)z / CHUNK_SIZE_XZ));
+    if(!chunk)
+        return 0;
+    return chunk->blocks[mod(x, CHUNK_SIZE_XZ)][y][mod(z, CHUNK_SIZE_XZ)];
+}
+
+void set_block_at(int x, int y, int z, int block)
+{
+    if(y < 0 || y >= CHUNK_SIZE_Y)
+        return;
+    int chunk_x = floorf((float)x / CHUNK_SIZE_XZ);
+    int chunk_y = floorf((float)z / CHUNK_SIZE_XZ);
+    Chunk *chunk = get_chunk(chunk_x, chunk_y);
+    if(!chunk)
+        return;
+    x = mod(x, CHUNK_SIZE_XZ);
+    z = mod(z, CHUNK_SIZE_XZ);
+    if (chunk->blocks[x][y][z] != block)
+    {
+        chunk->blocks[x][y][z] = block;
+        regenerate_chunk_mesh(chunk);
+        if(x == 0)
+        {
+            chunk = get_chunk(chunk_x - 1, chunk_y);
+            if(chunk)
+                regenerate_chunk_mesh(chunk);
+        }
+        else if(x == CHUNK_SIZE_XZ - 1)
+        {
+            chunk = get_chunk(chunk_x + 1, chunk_y);
+            if(chunk)
+                regenerate_chunk_mesh(chunk);
+        }
+        if(z == 0)
+        {
+            chunk = get_chunk(chunk_x, chunk_y - 1);
+            if(chunk)
+                regenerate_chunk_mesh(chunk);
+        }
+        else if(z == CHUNK_SIZE_XZ - 1)
+        {
+            chunk = get_chunk(chunk_x, chunk_y + 1);
+            if(chunk)
+                regenerate_chunk_mesh(chunk);
         }
     }
 }
