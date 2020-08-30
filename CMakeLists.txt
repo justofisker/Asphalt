@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(MinecraftClone VERSION 0.1.0)
+project(Asphalt VERSION 0.1.0)
 
 include(CTest)
 enable_testing()
 
-add_executable(MinecraftClone
+add_executable(Asphalt
     "src/main.c"
     "src/Chunk.c"
     "src/Mesh.c"
@@ -19,13 +19,13 @@ add_executable(MinecraftClone
 
 add_subdirectory("thirdparty/freeGLUT/freeglut/freeglut")
 
-target_link_libraries(MinecraftClone freeglut_static)
+target_link_libraries(Asphalt freeglut_static)
 
 if (UNIX)
-    target_link_libraries(MinecraftClone dl)
+    target_link_libraries(Asphalt dl)
 endif (UNIX)
 
-target_include_directories(MinecraftClone PUBLIC
+target_include_directories(Asphalt PUBLIC
     "thirdparty/cglm/include"
     "thirdparty/freeGLUT/freeglut/freeglut/include"
     "thirdparty/glad/include"

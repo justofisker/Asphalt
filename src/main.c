@@ -20,7 +20,7 @@
 #include "Block.h"
 #include "Sprite.h"
 
-#define WINDOW_TITLE "Minecraft Clone"
+#define WINDOW_TITLE "Asphalt"
 
 static char in_game = 0;
 static char paused = 0;
