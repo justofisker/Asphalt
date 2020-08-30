@@ -2,13 +2,13 @@
 #define CHUNK_H
 
 #define CHUNK_SIZE_XZ 16
-#define CHUNK_SIZE_Y 64
+#define CHUNK_SIZE_Y 128
 
 typedef struct _Mesh Mesh;
 
 typedef struct _Chunk
 {
-    unsigned int blocks[CHUNK_SIZE_XZ][CHUNK_SIZE_Y][CHUNK_SIZE_XZ];
+    unsigned short blocks[CHUNK_SIZE_XZ][CHUNK_SIZE_Y][CHUNK_SIZE_XZ];
     Mesh *mesh;
     int x, y;
 } Chunk;
@@ -22,7 +22,7 @@ void free_chunk(Chunk *chunk);
 Chunk *get_chunk(int x, int y);
 void generate_chunks();
 void render_chunks();
-int get_block_id_at(int x, int y, int z);
-void set_block_at(int x, int y, int z, int block);
+short get_block_id_at(int x, int y, int z);
+void set_block_at(int x, int y, int z, short block);
 
 #endif // CHUNK_H

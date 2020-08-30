@@ -249,8 +249,7 @@ void free_chunk(Chunk *chunk)
     free(chunk);
 }
 
-#define VIEW_DISTANCE 32
-#define CHUNK_ARR_SIZE VIEW_DISTANCE
+#define CHUNK_ARR_SIZE 32
 static Chunk *chunks[CHUNK_ARR_SIZE][CHUNK_ARR_SIZE];
 
 Chunk *get_chunk(int x, int y)
@@ -369,7 +368,7 @@ void render_chunks()
     }
 }
 
-int get_block_id_at(int x, int y, int z)
+short get_block_id_at(int x, int y, int z)
 {
     if(y < 0 || y >= CHUNK_SIZE_Y)
         return 0;

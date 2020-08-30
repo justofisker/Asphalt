@@ -48,7 +48,7 @@ void setup_blocks()
     blocks[BLOCK_STONE - 1].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
 }
 
-Block* get_block(int id)
+Block* get_block(short id)
 {
     if(id && id > 0 && id <= BLOCK_COUNT)
     {

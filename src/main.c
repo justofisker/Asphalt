@@ -217,7 +217,7 @@ static void Render(void)
                 vec3 position;
                 glm_vec3_add(target, origin, position);
 
-                int id = get_block_id_at(floorf(position[0]), floorf(position[1]), floorf(position[2]));
+                short id = get_block_id_at(floorf(position[0]), floorf(position[1]), floorf(position[2]));
 
                 if(id)
                 {

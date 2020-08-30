@@ -22,7 +22,7 @@ typedef struct _Block
 } Block;
 
 
-Block* get_block(int id);
+Block* get_block(short id);
 
 void setup_blocks();
 
