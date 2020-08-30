@@ -1,6 +1,11 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
+#define BLOCK_AIR   0
+#define BLOCK_GRASS 1
+#define BLOCK_DIRT  2
+#define BLOCK_STONE 3
+
 typedef enum _BlockSide
 {
     BLOCKSIDE_NORTH = 0,

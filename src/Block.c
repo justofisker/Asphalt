@@ -5,11 +5,6 @@
 #define BLOCK_COUNT 3
 Block blocks[BLOCK_COUNT];
 
-
-#define BLOCK_GRASS 1
-#define BLOCK_DIRT  2
-#define BLOCK_STONE 3
-
 void setup_blocks()
 {
 

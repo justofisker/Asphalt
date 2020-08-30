@@ -153,7 +153,7 @@ static void Render(void)
     if(in_game && !paused)
     {
         reset_mouse();
-        float speed = 10.0f;
+        float speed = 30.0f;
         vec3 direction = {0, 0, 0};
         if(get_key_state('a'))
             direction[0] += 1.0f;

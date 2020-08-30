@@ -29,9 +29,9 @@ Chunk *create_chunk(int _x, int _y)
             int act_x = 1000000 + CHUNK_SIZE_XZ * _x + x;
             int act_z = 1000000 + CHUNK_SIZE_XZ * _y + z;
             int act_y = max(min(CHUNK_SIZE_Y, perlin2d(act_x, act_z, .03f, 4) * 32), 1);
-            chunk->blocks[x][act_y - 1][z] = 1;
+            chunk->blocks[x][act_y - 1][z] = act_y > 5 ? BLOCK_GRASS : BLOCK_STONE;
             for(y = act_y - 2; y >= 0; y--)
-                chunk->blocks[x][y][z]= 2;
+                chunk->blocks[x][y][z]= y > 5 ? BLOCK_DIRT : BLOCK_STONE;
             
         }
     }
