@@ -20,8 +20,6 @@
 
 #define WINDOW_TITLE "Minecraft Clone"
 
-clock_t last_frame;
-
 static char key_states[256];
 static void KeyboardEvent(unsigned char key, char is_pressed)
 {
@@ -82,7 +80,7 @@ static void setup()
     glm_mat4_identity(global_view);
     glm_mat4_identity(global_projection);
 
-    last_frame = clock();
+    global_last_frame = clock();
     memset(key_states, 0, sizeof(key_states));
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
@@ -131,9 +129,9 @@ static void Render(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     clock_t time = clock();
-    float delta = ((float) (time - last_frame)) / CLOCKS_PER_SEC;
-    last_frame = time;
+    float delta = ((float) (time - global_last_frame)) / CLOCKS_PER_SEC;
     time_passed += delta;
+    global_last_frame = time;
 
     reset_mouse();
 
@@ -163,9 +161,6 @@ static void Render(void)
         frames = 0;
         time_passed -= 1.0f;
     }
-
-    //printf("x: %.1f  \ty: %.1f  \tz: %.1f\n", global_camera_position[0], global_camera_position[1], global_camera_position[2]);
-    //printf("x: %.1f  \ty: %.1f  \tz: %.1f\n", global_camera_rotation[0] / GLM_PIf * 180.0f, global_camera_rotation[1] / GLM_PIf * 180.0f, global_camera_rotation[2] / GLM_PIf * 180.0f);
     
     render_chunks();
 

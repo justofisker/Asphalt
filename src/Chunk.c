@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <cglm/cglm.h>
 #include <glad/glad.h>
+#include <gl/glut.h>
 
 Chunk *create_chunk(int _x, int _y)
 {
@@ -313,23 +314,14 @@ void render_chunk(Chunk *chunk)
     glBindVertexArray(0);
 }
 
-void freeArray(unsigned int **a, int m) {
-    int i;
-    for (i = 0; i < m; ++i) {
-        free(a[i]);
-    }
-    free(a);
-}
-
 void free_chunk(Chunk *chunk)
 {
     free_mesh(chunk->mesh);
     free(chunk);
 }
 
-#define VIEW_DISTANCE 64
+#define VIEW_DISTANCE 32
 #define CHUNK_ARR_SIZE VIEW_DISTANCE
-#define MAX_CHUNKS_PER_FRAME 6
 static Chunk *chunks[CHUNK_ARR_SIZE][CHUNK_ARR_SIZE];
 
 Chunk *get_chunk(int x, int y)
@@ -353,6 +345,11 @@ void generate_chunks()
     memset(chunks, 0, sizeof(chunks));
 }
 
+
+static char dontGenerate = 0;
+int last_x = 0;
+int last_y = 0;
+
 void render_chunks()
 {
     glm_perspective(glm_rad(70.0f), (float)global_width / global_height, 0.01f, 5000.0f, global_projection);
@@ -373,7 +370,10 @@ void render_chunks()
     int chunks_generated = 0;
     int cur_x = (int)(-global_camera_position[0]) / CHUNK_SIZE_XZ;
     int cur_y = (int)(-global_camera_position[2]) / CHUNK_SIZE_XZ;
+    if(!dontGenerate || last_x != cur_x || last_y != cur_y)
     {
+        last_x = cur_x;
+        last_y = cur_y;
         int x,y,dx,dy;
         x = 0;
         y = 0;
@@ -389,8 +389,13 @@ void render_chunks()
                     set_chunk(x + cur_x, y + cur_y, chunk);
                     chunk->mesh = create_mesh_from_chunk(chunk);
                     chunks_generated++;
-                    if(chunks_generated >= MAX_CHUNKS_PER_FRAME)
+                    float frame_time = 1.f / global_target_framerate;
+                    if(((clock() - global_last_frame) / (float)CLOCKS_PER_SEC) + 0.003 >= frame_time)
+                    {
+                        dontGenerate = 0;
                         goto render;
+                    }
+                    
                 }
             }
             if( (x == y) || ((x < 0) && (x == -y)) || ((x > 0) && (x == 1-y))){
@@ -401,8 +406,15 @@ void render_chunks()
             x += dx;
             y += dy;
         }
-
+        
+        dontGenerate = 1;
     }
+    else
+    {
+        last_x = cur_x;
+        last_y = cur_y;
+    }
+    
 
     render: for(x = 0; x < CHUNK_ARR_SIZE; x++)
     {

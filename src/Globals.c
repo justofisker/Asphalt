@@ -12,3 +12,5 @@ unsigned int global_basic_shader;
 Texture *global_texture;
 int global_height = 1080;
 int global_width = 1920;
+clock_t global_last_frame;
+int global_target_framerate = 165;
