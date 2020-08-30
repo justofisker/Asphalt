@@ -10,3 +10,5 @@ int global_basic_projection_loc;
 int global_basic_texture_loc;
 unsigned int global_basic_shader;
 Texture *global_texture;
+int global_height = 1080;
+int global_width = 1920;

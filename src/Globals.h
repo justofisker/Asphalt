@@ -17,4 +17,7 @@ extern int global_basic_texture_loc;
 extern unsigned int global_basic_shader;
 extern Texture *global_texture;
 
+extern int global_height;
+extern int global_width;
+
 #endif GLOBALS_H

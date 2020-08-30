@@ -19,4 +19,8 @@ void regenerate_chunk_mesh(Chunk *chunk);
 void render_chunk(Chunk *chunk);
 void free_chunk(Chunk *chunk);
 
+Chunk *get_chunk(int x, int y);
+void generate_chunks(int view_distance);
+void render_chunks();
+
 #endif // CHUNK_H

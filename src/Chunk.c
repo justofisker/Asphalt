@@ -2,6 +2,7 @@
 
 #include "Mesh.h"
 #include "Globals.h"
+#include "Util.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -22,16 +23,16 @@ Chunk *create_chunk(int _x, int _y)
     {
         for(z = 0; z < CHUNK_SIZE_XZ; ++z)
         {
-            int act_x = CHUNK_SIZE_XZ * _x + x;
-            int act_z = CHUNK_SIZE_XZ * _y + z;
-            int act_y = rand() % 3 + 1;
+            //           V Because we cant use negative numbers (please fix it is very hacky)
+            int act_x = 1000000 + CHUNK_SIZE_XZ * _x + x;
+            int act_z = 1000000 + CHUNK_SIZE_XZ * _y + z;
+            int act_y = max(min(CHUNK_SIZE_Y, perlin2d(act_x, act_z, .03f, 4) * 32), 1);
             chunk->blocks[x][act_y - 1][z] = 1;
             for(y = act_y - 2; y >= 0; y--)
-                chunk->blocks[x][y][z] = 2;
+                chunk->blocks[x][y][z]= 2;
+            
         }
     }
-    
-    chunk->mesh = create_mesh_from_chunk(chunk);
 
     return chunk;
 }
@@ -60,10 +61,11 @@ void create_vertex_index_buffer(Chunk* chunk, Vertex **_verticies, int *vertex_c
             {
                 if(chunk->blocks[x][y][z])
                 {
-                    char north = z + 1 == CHUNK_SIZE_XZ ? 1 : chunk->blocks[x][y][z + 1] == 0;
-                    char south = z - 1 ==            -1 ? 1 : chunk->blocks[x][y][z - 1] == 0;
-                    char west  = x - 1 ==            -1 ? 1 : chunk->blocks[x - 1][y][z] == 0;
-                    char east  = x + 1 == CHUNK_SIZE_XZ ? 1 : chunk->blocks[x + 1][y][z] == 0;
+                    char north = z + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x, chunk->y + 1) ? get_chunk(chunk->x, chunk->y + 1)->blocks[x][y][0]                 == 0 : 1) : chunk->blocks[x][y][z + 1] == 0;
+                    char south = z - 1 ==            -1 ? (get_chunk(chunk->x, chunk->y - 1) ? get_chunk(chunk->x, chunk->y - 1)->blocks[x][y][CHUNK_SIZE_XZ - 1] == 0 : 1) : chunk->blocks[x][y][z - 1] == 0;
+                    char west  = x - 1 ==            -1 ? (get_chunk(chunk->x - 1, chunk->y) ? get_chunk(chunk->x - 1, chunk->y)->blocks[CHUNK_SIZE_XZ - 1][y][z] == 0 : 1) : chunk->blocks[x - 1][y][z] == 0;
+                    char east  = x + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x + 1, chunk->y) ? get_chunk(chunk->x + 1, chunk->y)->blocks[0][y][z]                 == 0 : 1) : chunk->blocks[x + 1][y][z] == 0;
+                    
                     char up    = y + 1 ==  CHUNK_SIZE_Y ? 1 : chunk->blocks[x][y + 1][z] == 0;
                     char down  = y - 1 ==            -1 ? 1 : chunk->blocks[x][y - 1][z] == 0;
                     face_count += north;
@@ -97,10 +99,11 @@ void create_vertex_index_buffer(Chunk* chunk, Vertex **_verticies, int *vertex_c
             {
                 if(chunk->blocks[x][y][z])
                 {
-                    char north = z + 1 == CHUNK_SIZE_XZ ? 1 : chunk->blocks[x][y][z + 1] == 0;
-                    char south = z - 1 ==            -1 ? 1 : chunk->blocks[x][y][z - 1] == 0;
-                    char west  = x - 1 ==            -1 ? 1 : chunk->blocks[x - 1][y][z] == 0;
-                    char east  = x + 1 == CHUNK_SIZE_XZ ? 1 : chunk->blocks[x + 1][y][z] == 0;
+                    char north = z + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x, chunk->y + 1) ? get_chunk(chunk->x, chunk->y + 1)->blocks[x][y][0]                 == 0 : 1) : chunk->blocks[x][y][z + 1] == 0;
+                    char south = z - 1 ==            -1 ? (get_chunk(chunk->x, chunk->y - 1) ? get_chunk(chunk->x, chunk->y - 1)->blocks[x][y][CHUNK_SIZE_XZ - 1] == 0 : 1) : chunk->blocks[x][y][z - 1] == 0;
+                    char west  = x - 1 ==            -1 ? (get_chunk(chunk->x - 1, chunk->y) ? get_chunk(chunk->x - 1, chunk->y)->blocks[CHUNK_SIZE_XZ - 1][y][z] == 0 : 1) : chunk->blocks[x - 1][y][z] == 0;
+                    char east  = x + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x + 1, chunk->y) ? get_chunk(chunk->x + 1, chunk->y)->blocks[0][y][z]                 == 0 : 1) : chunk->blocks[x + 1][y][z] == 0;
+
                     char up    = y + 1 ==  CHUNK_SIZE_Y ? 1 : chunk->blocks[x][y + 1][z] == 0;
                     char down  = y - 1 ==            -1 ? 1 : chunk->blocks[x][y - 1][z] == 0;
                     
@@ -198,10 +201,10 @@ void create_vertex_index_buffer(Chunk* chunk, Vertex **_verticies, int *vertex_c
                             tex_pos_x = 0;
                             tex_pos_y = 0;
                         }
-                        verticies[offset + 0] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  (float)cell_size_x * (tex_pos_x + 0) / tex_size_x, (float)cell_size_y * (tex_pos_y + 0) / tex_size_y  ,  0.0f,  1.0f,  0.0f}; // UP
-                        verticies[offset + 1] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  (float)cell_size_x * (tex_pos_x + 1) / tex_size_x, (float)cell_size_y * (tex_pos_y + 0) / tex_size_y  ,  0.0f,  1.0f,  0.0f}; // UP
-                        verticies[offset + 2] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  (float)cell_size_x * (tex_pos_x + 1) / tex_size_x, (float)cell_size_y * (tex_pos_y + 1) / tex_size_y  ,  0.0f,  1.0f,  0.0f}; // UP
-                        verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  (float)cell_size_x * (tex_pos_x + 0) / tex_size_x, (float)cell_size_y * (tex_pos_y + 1) / tex_size_y  ,  0.0f,  1.0f,  0.0f}; // UP
+                        verticies[offset + 0] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  (float)cell_size_x * (tex_pos_x + 0) / tex_size_x, (float)cell_size_y * (tex_pos_y + 0) / tex_size_y ,  0.0f,  1.0f,  0.0f}; // UP
+                        verticies[offset + 1] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  (float)cell_size_x * (tex_pos_x + 1) / tex_size_x, (float)cell_size_y * (tex_pos_y + 0) / tex_size_y ,  0.0f,  1.0f,  0.0f}; // UP
+                        verticies[offset + 2] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  (float)cell_size_x * (tex_pos_x + 1) / tex_size_x, (float)cell_size_y * (tex_pos_y + 1) / tex_size_y ,  0.0f,  1.0f,  0.0f}; // UP
+                        verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  (float)cell_size_x * (tex_pos_x + 0) / tex_size_x, (float)cell_size_y * (tex_pos_y + 1) / tex_size_y ,  0.0f,  1.0f,  0.0f}; // UP
                         offset += 4;
                     }
                     if(down)
@@ -299,17 +302,12 @@ void regenerate_chunk_mesh(Chunk *chunk)
 }
 
 void render_chunk(Chunk *chunk)
-{   
-    glUseProgram(global_basic_shader);
+{  
 
     mat4 model = GLM_MAT4_IDENTITY_INIT;
     glm_translate(model, (vec3){chunk->x * CHUNK_SIZE_XZ, 0.0f, chunk->y * CHUNK_SIZE_XZ});
 
-    bind_texture(global_texture, 0);
     glUniformMatrix4fv(global_basic_model_loc, 1, GL_FALSE, model[0]);
-    glUniformMatrix4fv(global_basic_view_loc, 1, GL_FALSE, global_view[0]);
-    glUniformMatrix4fv(global_basic_projection_loc, 1, GL_FALSE, global_projection[0]);
-    glUniform1i(global_basic_texture_loc, 0);
     glBindVertexArray(chunk->mesh->array_object);
     glDrawElements(GL_TRIANGLES, chunk->mesh->index_count, chunk->mesh->index_type, (void*)0);
     glBindVertexArray(0);
@@ -319,4 +317,58 @@ void free_chunk(Chunk *chunk)
 {
     free_mesh(chunk->mesh);
     free(chunk);
+}
+
+static int view_distance;
+static Chunk **chunks;
+
+Chunk *get_chunk(int x, int y)
+{
+    int i;
+    for(i = 0; i < view_distance * view_distance; i++)
+        if(chunks[i]->x == x && chunks[i]->y == y)
+            return chunks[i];
+    return 0;
+}
+
+void generate_chunks(int _view_distance)
+{
+    view_distance = _view_distance;
+    chunks = malloc(sizeof(Chunk*) * view_distance * view_distance);
+    int i;
+    int x, y;
+    for(x = 0; x < view_distance; x++)
+    {
+        for(y = 0; y < view_distance; y++)
+        {
+            chunks[x + y * view_distance] = create_chunk(x - view_distance / 2, y - view_distance / 2);
+        }
+    }
+    for(i = 0; i < view_distance * view_distance; i++)
+    {
+        chunks[i]->mesh = create_mesh_from_chunk(chunks[i]);
+    }
+}
+
+void render_chunks()
+{
+    glm_perspective(glm_rad(70.0f), (float)global_width / global_height, 0.01f, 1000.0f, global_projection);
+    glm_mat4_identity(global_view);
+    mat4 rotation;
+    glm_euler_xyz(global_camera_rotation, rotation);
+    glm_mul_rot(global_view, rotation, global_view);
+    glm_translate(global_view, global_camera_position);
+
+    glUseProgram(global_basic_shader);
+    bind_texture(global_texture, 0);
+    glUniformMatrix4fv(global_basic_view_loc, 1, GL_FALSE, global_view[0]);
+    glUniformMatrix4fv(global_basic_projection_loc, 1, GL_FALSE, global_projection[0]);
+    glUniform1i(global_basic_texture_loc, 0);
+
+    int i;
+    for(i = 0; i < view_distance * view_distance; i++)
+    {
+        if(chunks[i])
+            render_chunk(chunks[i]);
+    }
 }

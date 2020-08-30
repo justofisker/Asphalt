@@ -20,8 +20,6 @@
 
 #define WINDOW_TITLE "Minecraft Clone"
 
-static int width = 1920, height = 1080;
-
 clock_t last_frame;
 
 static char key_states[256];
@@ -51,7 +49,8 @@ static char get_key_state(unsigned char key)
     return key_states[key];
 }
 
-static Chunk *chunk[4];
+#define VIEW_DISTANCE 16
+static Chunk *chunk[VIEW_DISTANCE * VIEW_DISTANCE];
 
 
 void GLAPIENTRY
@@ -82,6 +81,7 @@ static void setup()
     global_basic_texture_loc = glGetUniformLocation(global_basic_shader, "u_Texture");
 
     glm_vec3_zero(global_camera_position);
+    global_camera_position[1] -= 40.0f;
     glm_vec3_zero(global_camera_rotation);
     glm_mat4_identity(global_view);
     glm_mat4_identity(global_projection);
@@ -98,31 +98,28 @@ static void setup()
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    int x, y;
-    for(x = 0; x < 2; x++)
-        for(y = 0; y < 2; y++)
-            chunk[x + y * 2] = create_chunk(-x, -y);
+    generate_chunks(VIEW_DISTANCE);
 }
 
 static void mouse_motion(int x, int y)
 {
-    global_camera_rotation[0] += glm_rad(((float)y - height / 2) / 10);
+    global_camera_rotation[0] += glm_rad(((float)y - global_height / 2) / 10);
     global_camera_rotation[0] = fmaxf(fminf(glm_rad(85.f), global_camera_rotation[0]), glm_rad(-85.f));
-    global_camera_rotation[1] += glm_rad(((float)x - width / 2) / 10);
+    global_camera_rotation[1] += glm_rad(((float)x - global_width / 2) / 10);
     global_camera_rotation[1] = fmodf(global_camera_rotation[1], GLM_PIf * 2);
 }
 
 static void reset_mouse()
 {
-    glutWarpPointer(width / 2, height / 2);
+    glutWarpPointer(global_width / 2, global_height / 2);
     glutSetCursor(GLUT_CURSOR_NONE);
 }
 
 static void Resize(int w, int h)
 {
-    width = w > 1 ? w : 1;
-    height = h > 1 ? h : 1;
-    glViewport(0, 0, width, height);
+    global_width = w > 1 ? w : 1;
+    global_height = h > 1 ? h : 1;
+    glViewport(0, 0, global_width, global_height);
     
     glClearDepth(1.0);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -130,6 +127,7 @@ static void Resize(int w, int h)
 }
 
 static float time_passed = 0.0f;
+static int frames = 0;
 
 static void Render(void)
 {
@@ -143,6 +141,7 @@ static void Render(void)
 
     reset_mouse();
 
+    float speed = 15.0f;
     vec3 direction = {0, 0, 0};
     if(get_key_state('a'))
         direction[0] += 1.0f;
@@ -158,29 +157,21 @@ static void Render(void)
         direction[1] -= 1.0f;
     glm_normalize(direction);
     glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
-    glm_vec3_mul(direction, (vec3){delta * 6, -delta * 6, delta * 6}, direction);
+    glm_vec3_mul(direction, (vec3){delta * speed, -delta * speed, delta * speed}, direction);
     glm_vec3_add(global_camera_position, direction, global_camera_position);
 
-    //if(time_passed >= 1.0f)
-    //{
-    //    chunk[2]->blocks[12][12][12] = !chunk[2]->blocks[12][12][12];
-    //    regenerate_chunk_mesh(chunk[2]);
-    //    time_passed -= 1.0f;
-    //}
+    frames++;
+    if(time_passed >= 1.0f)
+    {
+        printf("fps: %d\n", frames);
+        frames = 0;
+        time_passed -= 1.0f;
+    }
 
     //printf("x: %.1f  \ty: %.1f  \tz: %.1f\n", global_camera_position[0], global_camera_position[1], global_camera_position[2]);
     //printf("x: %.1f  \ty: %.1f  \tz: %.1f\n", global_camera_rotation[0] / GLM_PIf * 180.0f, global_camera_rotation[1] / GLM_PIf * 180.0f, global_camera_rotation[2] / GLM_PIf * 180.0f);
-
-    glm_perspective(glm_rad(70.0f), (float)width / height, 0.01f, 100.0f, global_projection);
-    glm_mat4_identity(global_view);
-    mat4 rotation;
-    glm_euler_xyz(global_camera_rotation, rotation);
-    glm_mul_rot(global_view, rotation, global_view);
-    glm_translate(global_view, global_camera_position);
-
-    int i;
-    for(i = 0; i < 4; i++)
-        render_chunk(chunk[i]);
+    
+    render_chunks();
 
     glutSwapBuffers();
     glutPostRedisplay();
@@ -188,6 +179,7 @@ static void Render(void)
 
 int main(int argc, char **argv)
 {
+    srand(time(0));
     if(gladLoadGL()) {
         // you need an OpenGL context before loading glad
         printf("I did load GL with no context!\n");
@@ -196,7 +188,7 @@ int main(int argc, char **argv)
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
-    glutInitWindowSize(width, height);
+    glutInitWindowSize(global_width, global_height);
     glutCreateWindow(WINDOW_TITLE);
 
     glutReshapeFunc(Resize);
