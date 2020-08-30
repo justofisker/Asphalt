@@ -20,6 +20,9 @@
 
 #define WINDOW_TITLE "Minecraft Clone"
 
+static char in_game = 0;
+static char paused = 0;
+
 static char key_states[256];
 static void KeyboardEvent(unsigned char key, char is_pressed)
 {
@@ -97,6 +100,7 @@ static void setup()
 
 static void mouse_motion(int x, int y)
 {
+    if(paused || !in_game) return;
     global_camera_rotation[0] += glm_rad(((float)y - global_height / 2) / 10);
     global_camera_rotation[0] = fmaxf(fminf(glm_rad(85.f), global_camera_rotation[0]), glm_rad(-85.f));
     global_camera_rotation[1] += glm_rad(((float)x - global_width / 2) / 10);
@@ -122,6 +126,7 @@ static void Resize(int w, int h)
 
 static float time_passed = 0.0f;
 static int frames = 0;
+static HWND self = 0;
 
 static void Render(void)
 {
@@ -133,26 +138,43 @@ static void Render(void)
     time_passed += delta;
     global_last_frame = time;
 
-    reset_mouse();
+    if(!self)
+        self = FindWindow(NULL, WINDOW_TITLE);
 
-    float speed = 150.0f;
-    vec3 direction = {0, 0, 0};
-    if(get_key_state('a'))
-        direction[0] += 1.0f;
-    if(get_key_state('d'))
-        direction[0] -= 1.0f;
-    if(get_key_state('w'))
-        direction[2] += 1.0f;
-    if(get_key_state('s'))
-        direction[2] -= 1.0f;
-    if(get_key_state(' '))
-        direction[1] += 1.0f;
-    if(GetKeyState(VK_SHIFT) & 0x8000)
-        direction[1] -= 1.0f;
-    glm_normalize(direction);
-    glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
-    glm_vec3_mul(direction, (vec3){delta * speed, -delta * speed, delta * speed}, direction);
-    glm_vec3_add(global_camera_position, direction, global_camera_position);
+    in_game = GetForegroundWindow() == self;
+
+    if(GetAsyncKeyState(VK_ESCAPE) & 1)
+    {
+        paused = !paused;
+    }
+
+    if(in_game && !paused)
+    {
+        reset_mouse();
+        float speed = 150.0f;
+        vec3 direction = {0, 0, 0};
+        if(get_key_state('a'))
+            direction[0] += 1.0f;
+        if(get_key_state('d'))
+            direction[0] -= 1.0f;
+        if(get_key_state('w'))
+            direction[2] += 1.0f;
+        if(get_key_state('s'))
+            direction[2] -= 1.0f;
+        if(get_key_state(' '))
+            direction[1] += 1.0f;
+        if(GetKeyState(VK_SHIFT) & 0x8000)
+            direction[1] -= 1.0f;
+        glm_normalize(direction);
+        glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
+        glm_vec3_mul(direction, (vec3){delta * speed, -delta * speed, delta * speed}, direction);
+        glm_vec3_add(global_camera_position, direction, global_camera_position);
+    }
+    else
+    {
+        glutSetCursor(GLUT_CURSOR_RIGHT_ARROW);
+    }
+    
 
     frames++;
     if(time_passed >= 1.0f)
