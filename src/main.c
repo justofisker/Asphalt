@@ -93,6 +93,7 @@ static int frames = 0;
 
 vec3 velocity = GLM_VEC3_ZERO_INIT;
 char on_ground = 0;
+int block_selected = 1;
 
 static void Render(void)
 {
@@ -261,6 +262,50 @@ static void Render(void)
                 if(id)
                 {
                     set_block_at(floorf(position[0]), floorf(position[1]), floorf(position[2]), 0);
+                    break;
+                }
+            }
+        }
+    }
+
+    if(is_key_just_pressed('1'))
+        block_selected = 1;
+    if(is_key_just_pressed('2'))
+        block_selected = 2;
+    if(is_key_just_pressed('3'))
+        block_selected = 3;
+    // Raycast Place BLock
+    if(!paused && is_mouse_button_just_pressed(GLUT_RIGHT_BUTTON))
+    {
+        float max_distance = 10.0f;
+
+        vec3 origin;
+        vec3 direction = {0.0f, 0.0f, -1.0f};
+        vec3 ray_inc = {0.05f, 0.05f, 0.05f};
+
+        glm_vec3_copy(global_camera_position, origin);
+        glm_vec3_rotate(direction, -global_camera_rotation[0], (vec3){1.0f, 0.0f, 0.0f});
+        glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.0f, 1.0f, 0.0f});
+        glm_normalize(direction);
+        glm_vec3_mul(ray_inc, direction, ray_inc);
+
+        {
+            vec3 target = {0.0f, 0.0f, 0.0f};
+            while((target[0]*target[0] + target[1]*target[1] + target[2]*target[2]) < max_distance*max_distance)
+            {
+                glm_vec3_add(target, ray_inc, target);
+
+                vec3 position;
+                glm_vec3_add(target, origin, position);
+
+                short id = get_block_id_at(floorf(position[0]), floorf(position[1]), floorf(position[2]));
+
+                if(id)
+                {
+                    glm_vec3_sub(position, ray_inc, position);
+
+                    set_block_at(floorf(position[0]), floorf(position[1]), floorf(position[2]), block_selected);
+
                     break;
                 }
             }
