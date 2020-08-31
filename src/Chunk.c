@@ -285,7 +285,8 @@ void render_chunks()
     mat4 rotation;
     glm_euler_xyz(global_camera_rotation, rotation);
     glm_mul_rot(global_view, rotation, global_view);
-    glm_translate(global_view, (vec3){-global_camera_position[0], -global_camera_position[1], -global_camera_position[2]});
+    glm_translate(global_view, (vec3){-global_player_position[0], -global_player_position[1], -global_player_position[2]});
+    glm_translate(global_view, (vec3){-global_camera_offset[0], -global_camera_offset[1], -global_camera_offset[2]});
 
     glUseProgram(global_basic_shader);
     bind_texture(global_texture, 0);
@@ -296,8 +297,8 @@ void render_chunks()
     int x, y;
 
     int chunks_generated = 0;
-    int cur_x = (int)(global_camera_position[0]) / CHUNK_SIZE_XZ;
-    int cur_y = (int)(global_camera_position[2]) / CHUNK_SIZE_XZ;
+    int cur_x = (int)(global_player_position[0]) / CHUNK_SIZE_XZ;
+    int cur_y = (int)(global_player_position[2]) / CHUNK_SIZE_XZ;
     if(!dontGenerate || last_x != cur_x || last_y != cur_y)
     {
         last_x = cur_x;

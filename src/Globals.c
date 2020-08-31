@@ -1,7 +1,8 @@
 #include "Globals.h"
 
-vec3 global_camera_position;
 vec3 global_camera_rotation;
+vec3 global_camera_offset = {0.0f, 1.5f, 0.0f};
+vec3 global_player_position;
 mat4 global_view;
 mat4 global_projection;
 int global_basic_model_loc;

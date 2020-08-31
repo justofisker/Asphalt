@@ -7,7 +7,8 @@
 
 #define WINDOW_TITLE "Asphalt"
 
-extern vec3 global_camera_position;
+extern vec3 global_player_position;
+extern vec3 global_camera_offset;
 extern vec3 global_camera_rotation;
 
 extern mat4 global_view;

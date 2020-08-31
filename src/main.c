@@ -54,8 +54,8 @@ static void setup()
 
     crosshair = create_sprite(create_texture("res/texture/crosshair.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, 0, 0.0f));
 
-    glm_vec3_zero(global_camera_position);
-    global_camera_position[1] = 40.0f;
+    glm_vec3_zero(global_player_position);
+    global_player_position[1] = 40.0f;
     glm_vec3_zero(global_camera_rotation);
     glm_mat4_identity(global_view);
     glm_mat4_identity(global_projection);
@@ -103,6 +103,7 @@ static void Render(void)
 
     clock_t time = clock();
     float delta = ((float) (time - global_last_frame)) / CLOCKS_PER_SEC;
+    delta = fminf(delta, 0.05f);
     time_passed += delta;
     global_last_frame = time;
 
@@ -142,7 +143,7 @@ static void Render(void)
         if(is_key_pressed('s'))
             direction[2] += 1.0f;
         if(is_key_pressed(' ') && on_ground)
-            velocity[1] = 6.7f;
+            velocity[1] = 8.f;
         glm_normalize(direction);
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
         glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
@@ -158,73 +159,45 @@ static void Render(void)
 
     // Collison Detection
     {
-        vec3 correction = GLM_VEC3_ZERO_INIT;
+        char changed_x = floorf(global_player_position[0] + movement[0]) - floorf(global_player_position[0]);
+        char changed_y = floorf(global_player_position[1] + movement[1]) - floorf(global_player_position[1]);
+        char changed_z = floorf(global_player_position[2] + movement[2]) - floorf(global_player_position[2]);
+        int x = floorf(global_player_position[0]);
+        int y = floorf(global_player_position[1]);
+        int z = floorf(global_player_position[2]);
 
-        vec3 floor_camera_position = {floorf(global_camera_position[0]), floorf(global_camera_position[1]), floorf(global_camera_position[2])};
-        vec3 floor_test_position = {floorf(global_camera_position[0] + movement[0]), floorf(global_camera_position[1] + movement[1]), floorf(global_camera_position[2] + movement[2])};
-        int cur_x = floor_camera_position[0];
-        int cur_y = floor_camera_position[1];
-        int cur_z = floor_camera_position[2];
-        int mov_x = floor_test_position[0];
-        int mov_y = floor_test_position[1];
-        int mov_z = floor_test_position[2];
-
-        // Floor Collison
-        if(movement[1] < 0.0f)
+        if(changed_x)
         {
-            float y_offset = -1.5f;
-            float y = floorf(global_camera_position[1]) + y_offset;
-            if( get_block_id_at(floor_camera_position[0], y, floor_camera_position[2]) )
+            if(get_block_id_at(x + changed_x,y,z)
+                || get_block_id_at(x + changed_x,y + 1,z))
             {
-                correction[1] += 1 - (global_camera_position[1] + y_offset - y);
-                velocity[1] = 0.0f;
-                on_ground = 1;
+                movement[0] = 0.f;
             }
-            else
-                on_ground = 0;
+        }
+        if(changed_y)
+        {
+            if(get_block_id_at(x,y + changed_y,z))
+            {
+                movement[1] = 0.f;
+                velocity[1] = 0.f;
+                if(changed_y < 0)
+                    on_ground = 1;
+                else on_ground = 0;
+            }
+            else on_ground = 0;
         }
         else on_ground = 0;
-        // +X
-        if(movement[0] > 0.0f && cur_x != mov_x)
+        if(changed_z)
         {
-            if(get_block_id_at(mov_x, mov_y, mov_z) || get_block_id_at(mov_x, mov_y - 1, mov_z))
-            {
-                movement[0] = 0.f;
-                velocity[0] = 0.0f;
-            }
-        }
-        // -X
-        if(movement[0] < 0.0f && cur_x != mov_x)
-        {
-            if(get_block_id_at(mov_x, mov_y, mov_z) || get_block_id_at(mov_x, mov_y - 1, mov_z))
-            {
-                movement[0] = 0.f;
-                velocity[0] = 0.0f;
-            }
-        }
-        // +Z
-        if(movement[2] > 0.0f && cur_z != mov_z)
-        {
-            if(get_block_id_at(mov_x, mov_y, mov_z) || get_block_id_at(mov_x, mov_y - 1, mov_z))
+            if(get_block_id_at(x,y,z + changed_z)
+                || get_block_id_at(x,y + 1,z + changed_z))
             {
                 movement[2] = 0.f;
-                velocity[2] = 0.0f;
             }
         }
-        // -Z
-        if(movement[2] < 0.0f && cur_z != mov_x)
-        {
-            if(get_block_id_at(mov_x, mov_y, mov_z) || get_block_id_at(mov_x, mov_y - 1, mov_z))
-            {
-                movement[2] = 0.f;
-                velocity[2] = 0.0f;
-            }
-        }
-
-        glm_vec3_add(movement, correction, movement);
     }
     
-    glm_vec3_add(global_camera_position, movement, global_camera_position);
+    glm_vec3_add(global_player_position, movement, global_player_position);
     
 
     frames++;
@@ -242,7 +215,8 @@ static void Render(void)
         vec3 origin;
         vec3 direction = {0.0f, 0.0f, -1.0f};
 
-        glm_vec3_copy(global_camera_position, origin);
+        glm_vec3_copy(global_player_position, origin);
+        glm_vec3_add(origin, global_camera_offset, origin);
         glm_vec3_rotate(direction, -global_camera_rotation[0], (vec3){1.0f, 0.0f, 0.0f});
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.0f, 1.0f, 0.0f});
         glm_normalize(direction);
@@ -283,7 +257,8 @@ static void Render(void)
         vec3 direction = {0.0f, 0.0f, -1.0f};
         vec3 ray_inc = {0.05f, 0.05f, 0.05f};
 
-        glm_vec3_copy(global_camera_position, origin);
+        glm_vec3_copy(global_player_position, origin);
+        glm_vec3_add(origin, global_camera_offset, origin);
         glm_vec3_rotate(direction, -global_camera_rotation[0], (vec3){1.0f, 0.0f, 0.0f});
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.0f, 1.0f, 0.0f});
         glm_normalize(direction);
@@ -302,6 +277,13 @@ static void Render(void)
 
                 if(id)
                 {
+                    int player_pos[3] = { floorf(global_player_position[0]), floorf(global_player_position[1]), floorf(global_player_position[2]) };
+                    int block_pos[3] = { floorf(position[0]), floorf(position[1]), floorf(position[2]) };
+
+                    if(player_pos[0] == block_pos[0] && player_pos[2] == block_pos[2] && (player_pos[1] == block_pos[1] || player_pos[1] + 1 == block_pos[1]))
+                        break;
+
+
                     glm_vec3_sub(position, ray_inc, position);
 
                     set_block_at(floorf(position[0]), floorf(position[1]), floorf(position[2]), block_selected);
