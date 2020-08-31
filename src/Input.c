@@ -41,11 +41,15 @@ void check_if_in_game() {}
 
 void keyboard_func(unsigned char key, int x, int y)
 {
+    if(key >= 'a' && key <= 'z')
+        key -= 'a' - 'A';
     key_states[key] = 1;
     frame_key_states[key] = 1;
 }
 void keyboard_func_up(unsigned char key, int x, int y)
 {
+    if(key >= 'a' && key <= 'z')
+        key -= 'a' - 'A';
     key_states[key] = 0;
 }
 void special_func(int key, int x, int y)
@@ -98,12 +102,16 @@ void set_mouse_mode(MouseMode mode)
 char is_key_pressed(unsigned char key)
 {
     if(!in_game) return 0;
+    if(key >= 'a' && key <= 'z')
+        key -= 'a' - 'A';
     return key_states[key];
 }
 
 char is_key_just_pressed(unsigned char key)
 {
     if(!in_game) return 0;
+    if(key >= 'a' && key <= 'z')
+        key -= 'a' - 'A';
     return frame_key_states[key];
 }
 

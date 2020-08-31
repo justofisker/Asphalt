@@ -135,7 +135,11 @@ static void Render(void)
             direction[2] += 1.0f;
         if(is_key_pressed(' '))
             direction[1] += 1.0f;
+#ifdef _WIN32
+        if(GetKeyState(VK_SHIFT) & 0x8000)
+#else
         if(is_key_pressed('c'))
+#endif
             direction[1] -= 1.0f;
         glm_normalize(direction);
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
