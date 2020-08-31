@@ -19,6 +19,11 @@ char is_key_down(unsigned char key)
     return GetAsyncKeyState(key) & 0x8000;
 }
 
+char is_key_just_pressed(int key)
+{
+    return GetAsyncKeyState(key) & 1;
+}
+
 #endif // _WIN32
 
 #ifdef __linux__
@@ -31,6 +36,11 @@ char is_in_game()
 char is_key_down(unsigned char key)
 {
     return 0;
+}
+
+
+char is_key_just_pressed(int key)
+{
 }
 
 #endif // __linux__
