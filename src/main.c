@@ -23,33 +23,6 @@
 
 static char paused = 0;
 
-static char key_states[256];
-static void KeyboardEvent(unsigned char key, char is_pressed)
-{
-    key_states[key] = is_pressed;
-}
-
-static void KeyboardDown(unsigned char button, int x, int y)
-{
-    if(button >= 'a' && button <= 'z')
-        button -= 'a' - 'A';
-    KeyboardEvent(button, 1);
-}
-
-static void KeyboardUp(unsigned char button, int x, int y)
-{
-    if(button >= 'a' && button <= 'z')
-        button -= 'a' - 'A';
-    KeyboardEvent(button, 0);
-}
-
-static char get_key_state(unsigned char key)
-{
-    if(key >= 'a' && key <= 'z')
-        key -= 'a' - 'A';
-    return key_states[key];
-}
-
 void GLAPIENTRY
 MessageCallback( GLenum source,
                  GLenum type,
@@ -88,7 +61,6 @@ static void setup()
     glm_mat4_identity(global_projection);
 
     global_last_frame = clock();
-    memset(key_states, 0, sizeof(key_states));
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
@@ -101,21 +73,8 @@ static void setup()
 
     generate_chunks();
     setup_blocks();
-}
-
-static void mouse_motion(int x, int y)
-{
-    if(paused || !is_in_game()) return;
-    global_camera_rotation[0] += glm_rad(((float)y - global_height / 2) / 10);
-    global_camera_rotation[0] = fmaxf(fminf(glm_rad(85.f), global_camera_rotation[0]), glm_rad(-85.f));
-    global_camera_rotation[1] += glm_rad(((float)x - global_width / 2) / 10);
-    global_camera_rotation[1] = fmodf(global_camera_rotation[1], GLM_PIf * 2);
-}
-
-static void reset_mouse()
-{
-    glutWarpPointer(global_width / 2, global_height / 2);
-    glutSetCursor(GLUT_CURSOR_NONE);
+    setup_input();
+    set_mouse_mode(MOUSEMODE_CAPTURED);
 }
 
 static void Resize(int w, int h)
@@ -131,13 +90,10 @@ static void Resize(int w, int h)
 
 static float time_passed = 0.0f;
 static int frames = 0;
-static char just_left_clicked = 0;
-static char just_right_clicked = 0;
-static char left_mouse = 0;
-static char right_mouse = 0;
 
 static void Render(void)
 {
+    input_render_start();
     glClearColor(0.0f, 0.2f, 0.7f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -146,36 +102,45 @@ static void Render(void)
     time_passed += delta;
     global_last_frame = time;
 
-    if(GetAsyncKeyState(KEY_ESCAPE) & 1)
+    if(is_key_just_pressed(INPUT_KEY_ESCAPE))
     {
         paused = !paused;
+        if(paused)
+            set_mouse_mode(MOUSEMODE_CURSOR);
+        else
+            set_mouse_mode(MOUSEMODE_CAPTURED);
     }
 
-    if(is_in_game() && !paused)
+    if(!paused)
     {
-        reset_mouse();
+        int motion_x, motion_y;
+        get_mouse_motion(&motion_x, &motion_y);
+        global_camera_rotation[0] += glm_rad((float)motion_y / 10);
+        global_camera_rotation[0] = fmaxf(fminf(glm_rad(90.f), global_camera_rotation[0]), glm_rad(-90.f));
+        global_camera_rotation[1] += glm_rad((float)motion_x / 10);
+        global_camera_rotation[1] = fmodf(global_camera_rotation[1], GLM_PIf * 2);
+    }
+
+    if(!paused)
+    {
         float speed = 10.0f;
         vec3 direction = {0, 0, 0};
-        if(get_key_state('a'))
+        if(is_key_pressed('a'))
             direction[0] -= 1.0f;
-        if(get_key_state('d'))
+        if(is_key_pressed('d'))
             direction[0] += 1.0f;
-        if(get_key_state('w'))
+        if(is_key_pressed('w'))
             direction[2] -= 1.0f;
-        if(get_key_state('s'))
+        if(is_key_pressed('s'))
             direction[2] += 1.0f;
-        if(get_key_state(' '))
+        if(is_key_pressed(' '))
             direction[1] += 1.0f;
-        if(is_key_down(KEY_SHIFT))
+        if(is_key_pressed('c'))
             direction[1] -= 1.0f;
         glm_normalize(direction);
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
         glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
         glm_vec3_add(global_camera_position, direction, global_camera_position);
-    }
-    else
-    {
-        glutSetCursor(GLUT_CURSOR_RIGHT_ARROW);
     }
     
 
@@ -187,7 +152,7 @@ static void Render(void)
     }
 
     // Raycast
-    if(is_in_game() && !paused && just_left_clicked){
+    if(!paused && is_mouse_button_just_pressed(GLUT_LEFT_BUTTON)){
         float ray_inc = 0.05f;
         float max_distance = 10.0f;
 
@@ -219,34 +184,18 @@ static void Render(void)
             }
         }
     }
-    
+
+
     render_chunks();
 
     crosshair->position[0] = global_width / 2;
     crosshair->position[1] = global_height / 2;
     draw_sprite(crosshair);
 
-    just_left_clicked = 0;
-    just_right_clicked = 0;
+    input_render_end();
 
     glutSwapBuffers();
     glutPostRedisplay();
-}
-
-static void mouse_func(int state, int button, int x, int y)
-{
-    if(state == GLUT_LEFT_BUTTON)
-    {
-        if(button == GLUT_DOWN)
-            just_left_clicked = 1;
-        left_mouse = button == GLUT_DOWN;
-    }
-    if(state == GLUT_RIGHT_BUTTON)
-    {
-        if(button == GLUT_DOWN)
-            just_right_clicked = 1;
-        right_mouse = button == GLUT_DOWN;
-    }
 }
 
 int main(int argc, char **argv)
@@ -265,10 +214,12 @@ int main(int argc, char **argv)
 
     glutReshapeFunc(Resize);
     glutDisplayFunc(Render);
-    glutKeyboardFunc(KeyboardDown);
-    glutKeyboardUpFunc(KeyboardUp);
-    glutPassiveMotionFunc(mouse_motion);
-    glutMotionFunc(mouse_motion);
+    glutKeyboardFunc(keyboard_func);
+    glutKeyboardUpFunc(keyboard_func_up);
+    glutSpecialFunc(special_func);
+    glutSpecialUpFunc(special_func_up);
+    glutPassiveMotionFunc(mouse_motion_func);
+    glutMotionFunc(mouse_motion_func);
     glutMouseFunc(mouse_func);
 
     if(!gladLoadGL()) {

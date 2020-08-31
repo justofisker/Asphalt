@@ -1,21 +1,33 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#ifdef _WIN32
+#define INPUT_KEY_ESCAPE 27
+#define INPUT_KEY_BACKSPACE 8
+#define INPUT_KEY_DELETE 127
 
-#define KEY_ESCAPE VK_ESCAPE
-#define KEY_SHIFT  VK_SHIFT
+typedef enum _MouseMode {
+    MOUSEMODE_CURSOR = 0,
+    MOUSEMODE_CAPTURED
+} MouseMode;
 
-#endif // _WIN32
-#ifdef __linux__
+void keyboard_func(unsigned char key, int x, int y);
+void keyboard_func_up(unsigned char key, int x, int y);
+void special_func(int key, int x, int y);
+void special_func_up(int key, int x, int y);
+void mouse_func(int state, int button, int x, int y);
+void mouse_motion_func(int x, int y);
 
-#define KEY_ESCAPE 0
-#define KEY_SHIFT  0
+char is_key_pressed(unsigned char key);
+char is_key_just_pressed(unsigned char key);
+char is_special_pressed(int key);
+char is_special_just_pressed(int key);
+int is_mouse_button_pressed(int button);
+int is_mouse_button_just_pressed(int button);
+void get_mouse_motion(int *x, int *y);
+void set_mouse_mode(MouseMode mode);
 
-#endif // __linux__
-
-char is_in_game();
-char is_key_down(int key);
-char is_key_just_pressed(int key);
+void setup_input();
+void input_render_start();
+void input_render_end();
 
 #endif // INPUT_H

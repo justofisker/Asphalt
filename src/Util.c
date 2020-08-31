@@ -3,11 +3,11 @@
 #include <stdlib.h>
 #include <glad/glad.h>
 
-const char* get_file_content(const char *path, long *length)
+const char* get_file_content(const char *path, int *length)
 {
     FILE* file;
-    errno_t err = fopen_s(&file, path, "rb");
-    if(!file || err)
+    file = fopen(path, "rb");
+    if(!file)
     {
         printf("Failed to open %s", path);
         return NULL;
@@ -26,7 +26,7 @@ const char* get_file_content(const char *path, long *length)
 
 unsigned int compile_shader(const char *vertex_path, const char *fragment_path)
 {
-    long vertex_source_length;
+    int vertex_source_length;
     const char* vertex_source = get_file_content(vertex_path, &vertex_source_length);
     unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex_shader, 1, &vertex_source, &vertex_source_length);
@@ -41,7 +41,7 @@ unsigned int compile_shader(const char *vertex_path, const char *fragment_path)
         glGetShaderInfoLog(vertex_shader, 1024 - 1, &log_length, message);
         printf("Vertex Shader (%s) failed to compile.\n%s\n", vertex_path, message);
     }
-    long fragment_source_length;
+    int fragment_source_length;
     const char* fragment_source = get_file_content(fragment_path, &fragment_source_length);
     unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment_shader, 1, &fragment_source, &fragment_source_length);
@@ -74,7 +74,7 @@ unsigned int compile_shader(const char *vertex_path, const char *fragment_path)
     return program;
 }
 
-static int SEED = INT_MAX;
+static int SEED = -1;
 
 static int hash[] = {208,34,231,213,32,248,233,56,161,78,24,140,71,48,140,254,245,255,247,247,40,
                      185,248,251,245,28,124,204,204,76,36,1,107,28,234,163,202,224,245,128,167,204,
@@ -124,8 +124,8 @@ float noise2d(float x, float y)
 
 float perlin2d(float x, float y, float freq, int depth)
 {
-    if(SEED == INT_MAX)
-        SEED = rand() + rand();
+    if(SEED == -1)
+        SEED = rand();
     float xa = x*freq;
     float ya = y*freq;
     float amp = 1.0;

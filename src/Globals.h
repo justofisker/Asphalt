@@ -26,4 +26,4 @@ extern int global_width;
 extern clock_t global_last_frame;
 extern int global_target_framerate;
 
-#endif GLOBALS_H
+#endif // GLOBALS_H
