@@ -19,10 +19,8 @@
 #include "Texture.h"
 #include "Block.h"
 #include "Sprite.h"
+#include "Input.h"
 
-#define WINDOW_TITLE "Asphalt"
-
-static char in_game = 0;
 static char paused = 0;
 
 static char key_states[256];
@@ -107,7 +105,7 @@ static void setup()
 
 static void mouse_motion(int x, int y)
 {
-    if(paused || !in_game) return;
+    if(paused || !is_in_game()) return;
     global_camera_rotation[0] += glm_rad(((float)y - global_height / 2) / 10);
     global_camera_rotation[0] = fmaxf(fminf(glm_rad(85.f), global_camera_rotation[0]), glm_rad(-85.f));
     global_camera_rotation[1] += glm_rad(((float)x - global_width / 2) / 10);
@@ -133,7 +131,6 @@ static void Resize(int w, int h)
 
 static float time_passed = 0.0f;
 static int frames = 0;
-static HWND self = 0;
 static char just_left_clicked = 0;
 static char just_right_clicked = 0;
 static char left_mouse = 0;
@@ -149,17 +146,12 @@ static void Render(void)
     time_passed += delta;
     global_last_frame = time;
 
-    if(!self)
-        self = FindWindow(NULL, WINDOW_TITLE);
-
-    in_game = GetForegroundWindow() == self;
-
     if(GetAsyncKeyState(VK_ESCAPE) & 1)
     {
         paused = !paused;
     }
 
-    if(in_game && !paused)
+    if(is_in_game() && !paused)
     {
         reset_mouse();
         float speed = 10.0f;
@@ -174,7 +166,7 @@ static void Render(void)
             direction[2] += 1.0f;
         if(get_key_state(' '))
             direction[1] += 1.0f;
-        if(GetKeyState(VK_SHIFT) & 0x8000)
+        if(is_key_down(VK_SHIFT))
             direction[1] -= 1.0f;
         glm_normalize(direction);
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
@@ -195,7 +187,7 @@ static void Render(void)
     }
 
     // Raycast
-    if(in_game && !paused && just_left_clicked){
+    if(is_in_game() && !paused && just_left_clicked){
         float ray_inc = 0.05f;
         float max_distance = 10.0f;
 

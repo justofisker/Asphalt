@@ -5,6 +5,8 @@
 #include "Texture.h"
 #include <time.h>
 
+#define WINDOW_TITLE "Asphalt"
+
 extern vec3 global_camera_position;
 extern vec3 global_camera_rotation;
 

@@ -14,6 +14,7 @@ add_executable(Asphalt
     "src/stb_image.c"
     "src/Block.c"
     "src/Sprite.c"
+    "src/Input.c"
     "thirdparty/glad/src/glad.c"
     )
 
