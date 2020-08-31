@@ -16,6 +16,29 @@ int mouse_position[2];
 int mouse_motion[2];
 MouseMode mouse_mode = MOUSEMODE_CURSOR;
 
+char in_game = 1;
+
+#ifdef _WIN32
+
+HWND game_window = 0;
+
+void check_if_in_game()
+{
+    if(!game_window)
+        game_window = FindWindow(NULL, WINDOW_TITLE);
+    
+    in_game = GetForegroundWindow() == game_window;
+}
+
+#elif __linux__
+
+// TODO: Implement
+void check_if_in_game() {}
+
+#else
+void check_if_in_game() {}
+#endif
+
 void keyboard_func(unsigned char key, int x, int y)
 {
     key_states[key] = 1;
@@ -74,31 +97,37 @@ void set_mouse_mode(MouseMode mode)
 
 char is_key_pressed(unsigned char key)
 {
+    if(!in_game) return 0;
     return key_states[key];
 }
 
 char is_key_just_pressed(unsigned char key)
 {
+    if(!in_game) return 0;
     return frame_key_states[key];
 }
 
 char is_special_pressed(int key)
 {
+    if(!in_game) return 0;
     return special_states[key];
 }
 
 char is_special_just_pressed(int key)
 {
+    if(!in_game) return 0;
     return frame_special_states[key];
 }
 
 int is_mouse_button_pressed(int button)
 {
+    if(!in_game) return 0;
     return button == GLUT_LEFT_BUTTON ? mouse_button_states[0] : button == GLUT_RIGHT_BUTTON ? mouse_button_states[1] : 0;
 }
 
 int is_mouse_button_just_pressed(int button)
 {
+    if(!in_game) return 0;
     return button == GLUT_LEFT_BUTTON ? frame_mouse_button_states[0] : button == GLUT_RIGHT_BUTTON ? frame_mouse_button_states[1] : 0;
 }
 
@@ -110,7 +139,8 @@ void get_mouse_motion(int *x, int *y)
 
 void input_render_start()
 {
-    if(mouse_mode == MOUSEMODE_CURSOR)
+    check_if_in_game();
+    if(mouse_mode == MOUSEMODE_CURSOR || !in_game)
     {
         glutSetCursor(GLUT_CURSOR_RIGHT_ARROW);
     }
