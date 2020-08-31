@@ -146,7 +146,7 @@ static void Render(void)
     time_passed += delta;
     global_last_frame = time;
 
-    if(GetAsyncKeyState(VK_ESCAPE) & 1)
+    if(GetAsyncKeyState(KEY_ESCAPE) & 1)
     {
         paused = !paused;
     }
@@ -166,7 +166,7 @@ static void Render(void)
             direction[2] += 1.0f;
         if(get_key_state(' '))
             direction[1] += 1.0f;
-        if(is_key_down(VK_SHIFT))
+        if(is_key_down(KEY_SHIFT))
             direction[1] -= 1.0f;
         glm_normalize(direction);
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
