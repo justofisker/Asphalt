@@ -55,7 +55,7 @@ static void setup()
     crosshair = create_sprite(create_texture("res/texture/crosshair.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, 0, 0.0f));
 
     glm_vec3_zero(global_player_position);
-    global_player_position[1] = 40.0f;
+    global_player_position[1] = 100.0f;
     glm_vec3_zero(global_camera_rotation);
     glm_mat4_identity(global_view);
     glm_mat4_identity(global_projection);
@@ -88,8 +88,10 @@ static void Resize(int w, int h)
     glEnable(GL_DEPTH_TEST);
 }
 
-static float time_passed = 0.0f;
-static int frames = 0;
+float time_passed = 0.0f;
+int frames = 0;
+float time_since_space = 1.f;
+char fly_mode = 0;
 
 vec3 velocity = GLM_VEC3_ZERO_INIT;
 char on_ground = 0;
@@ -130,27 +132,65 @@ static void Render(void)
 
     vec3 movement = GLM_VEC3_ZERO_INIT;
 
+    //time_since_space += delta;
+    //if(is_key_just_pressed(' '))
+    //{
+    //    if(time_since_space < 0.5)
+    //        fly_mode = !fly_mode;
+    //    else
+    //        time_since_space = 0.f;
+    //}
+
+    //if(on_ground)
+    //    fly_mode = 0;
+
     if(!paused)
     {
-        float speed = 4.0f;
         vec3 direction = {0, 0, 0};
-        if(is_key_pressed('a'))
-            direction[0] -= 1.0f;
-        if(is_key_pressed('d'))
-            direction[0] += 1.0f;
-        if(is_key_pressed('w'))
-            direction[2] -= 1.0f;
-        if(is_key_pressed('s'))
-            direction[2] += 1.0f;
-        if(is_key_pressed(' ') && on_ground)
-            velocity[1] = 8.f;
+        float speed;
+        // Normal Walk
+        if (!fly_mode) {
+            speed = 4.0f;
+            if(is_key_pressed('a'))
+                direction[0] -= 1.0f;
+            if(is_key_pressed('d'))
+                direction[0] += 1.0f;
+            if(is_key_pressed('w'))
+                direction[2] -= 1.0f;
+            if(is_key_pressed('s'))
+                direction[2] += 1.0f;
+            if(is_key_pressed(' ') && on_ground)
+                velocity[1] = 8.f;
+        }
+        // Fly
+        else {
+            speed = 50.f;
+            if(is_key_pressed('a'))
+                direction[0] -= 1.0f;
+            if(is_key_pressed('d'))
+                direction[0] += 1.0f;
+            if(is_key_pressed('w'))
+                direction[2] -= 1.0f;
+            if(is_key_pressed('s'))
+                direction[2] += 1.0f;
+            if(is_key_pressed(' '))
+                direction[1] += 0.5f;
+#ifdef _WIN32
+            if(GetKeyState(VK_SHIFT) & 0x8000)
+#else
+            if(is_key_pressed('c'))
+#endif
+                direction[1] -= 0.5f;
+
+            glm_vec3_zero(velocity);
+        }
         glm_normalize(direction);
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
         glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
         glm_vec3_add(movement, direction, movement);
     }
 
-    {
+    if(!fly_mode) {
         vec3 velocity_movement;
         glm_vec3_copy(velocity, velocity_movement);
         glm_vec3_mul(velocity_movement, (vec3){delta, delta, delta}, velocity_movement);
@@ -159,40 +199,100 @@ static void Render(void)
 
     // Collison Detection
     {
-        char changed_x = floorf(global_player_position[0] + movement[0]) - floorf(global_player_position[0]);
-        char changed_y = floorf(global_player_position[1] + movement[1]) - floorf(global_player_position[1]);
-        char changed_z = floorf(global_player_position[2] + movement[2]) - floorf(global_player_position[2]);
-        int x = floorf(global_player_position[0]);
-        int y = floorf(global_player_position[1]);
-        int z = floorf(global_player_position[2]);
+        #define PLAYER_SIZE 0.15f
+        #define PLAYER_HEIGHT 1.65f
 
-        if(changed_x)
+        //char change_x_positive = 
+        char change_y_negative = (int)floorf(global_player_position[1] + movement[1]) - (int)floorf(global_player_position[1]);
+        char change_x_positive = (int)floorf(global_player_position[0] + movement[0] + PLAYER_SIZE) - (int)floorf(global_player_position[0] + PLAYER_SIZE);
+        char change_x_negative = (int)floorf(global_player_position[0] + movement[0] - PLAYER_SIZE) - (int)floorf(global_player_position[0] - PLAYER_SIZE);
+        char change_z_positive = (int)floorf(global_player_position[2] + movement[2] + PLAYER_SIZE) - (int)floorf(global_player_position[2] + PLAYER_SIZE);
+        char change_z_negative = (int)floorf(global_player_position[2] + movement[2] - PLAYER_SIZE) - (int)floorf(global_player_position[2] - PLAYER_SIZE);
+
+        int y_1 = (int)floorf(global_player_position[1]) + (int)floorf(fmodf(global_player_position[1], 1.0f) + 0.f);
+        int y_2 = (int)floorf(global_player_position[1]) + (int)floorf(fmodf(global_player_position[1], 1.0f) + 1.0f);
+        int y_3 = (int)floorf(global_player_position[1]) + (int)floorf(fmodf(global_player_position[1], 1.0f) + PLAYER_HEIGHT);
+
+        if(change_x_positive > 0)
         {
-            if(get_block_id_at(x + changed_x,y,z)
-                || get_block_id_at(x + changed_x,y + 1,z))
+            if(
+                get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_1, (int)floorf(global_player_position[2] + PLAYER_SIZE))
+             || get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_2, (int)floorf(global_player_position[2] + PLAYER_SIZE))
+             || get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_3, (int)floorf(global_player_position[2] + PLAYER_SIZE))
+             || get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_1, (int)floorf(global_player_position[2] - PLAYER_SIZE))
+             || get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_2, (int)floorf(global_player_position[2] - PLAYER_SIZE))
+             || get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_3, (int)floorf(global_player_position[2] - PLAYER_SIZE))
+                )
+            {
+                movement[0] = 0.f;
+            }
+        } else if (change_x_negative < 0)
+        {
+            if(
+                get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_1, (int)floorf(global_player_position[2] + PLAYER_SIZE))
+             || get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_2, (int)floorf(global_player_position[2] + PLAYER_SIZE))
+             || get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_3, (int)floorf(global_player_position[2] + PLAYER_SIZE))
+             || get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_1, (int)floorf(global_player_position[2] - PLAYER_SIZE))
+             || get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_2, (int)floorf(global_player_position[2] - PLAYER_SIZE))
+             || get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_3, (int)floorf(global_player_position[2] - PLAYER_SIZE))
+                )
             {
                 movement[0] = 0.f;
             }
         }
-        if(changed_y)
+        if(change_z_positive > 0)
         {
-            if(get_block_id_at(x,y + changed_y,z))
-            {
-                movement[1] = 0.f;
-                velocity[1] = 0.f;
-                if(changed_y < 0)
-                    on_ground = 1;
-                else on_ground = 0;
-            }
-            else on_ground = 0;
-        }
-        else on_ground = 0;
-        if(changed_z)
-        {
-            if(get_block_id_at(x,y,z + changed_z)
-                || get_block_id_at(x,y + 1,z + changed_z))
+            if(
+                get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z_positive)
+             || get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z_positive)
+             || get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z_positive)
+             || get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z_positive)
+             || get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z_positive)
+             || get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z_positive)
+                )
             {
                 movement[2] = 0.f;
+            }
+        } else if (change_z_negative < 0)
+        {
+            if(
+                get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z_negative)
+             || get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z_negative)
+             || get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z_negative)
+             || get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z_negative)
+             || get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z_negative)
+             || get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z_negative)
+                )
+            {
+                movement[2] = 0.f;
+            }
+        }
+
+        if(change_y_negative < 0)
+        {
+            if(
+                get_block_id_at(floorf(global_player_position[0] - PLAYER_SIZE), y_1 + change_y_negative, floorf(global_player_position[2] - PLAYER_SIZE))
+             || get_block_id_at(floorf(global_player_position[0] + PLAYER_SIZE), y_1 + change_y_negative, floorf(global_player_position[2] - PLAYER_SIZE))
+             || get_block_id_at(floorf(global_player_position[0] + PLAYER_SIZE), y_1 + change_y_negative, floorf(global_player_position[2] + PLAYER_SIZE))
+             || get_block_id_at(floorf(global_player_position[0] - PLAYER_SIZE), y_1 + change_y_negative, floorf(global_player_position[2] + PLAYER_SIZE))
+                )
+            {
+                movement[1] = 0.0f;
+                velocity[1] = 0.0f;
+                on_ground = 1;
+            } else on_ground = 0;       
+        } else
+        {
+            on_ground = 0;
+            if(movement[1] > 0.f)
+            {
+                if(
+                    get_block_id_at(floorf(global_player_position[0]), floorf(global_player_position[1] + movement[1] + PLAYER_HEIGHT), floorf(global_player_position[2]))
+                )
+                {
+                    movement[1] = 0.0f;
+                    velocity[1] = 0.0f;
+                }
             }
         }
     }
