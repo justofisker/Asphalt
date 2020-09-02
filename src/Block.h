@@ -5,6 +5,8 @@
 #define BLOCK_GRASS 1
 #define BLOCK_DIRT  2
 #define BLOCK_STONE 3
+#define BLOCK_WATER 4
+#define BLOCK_SAND  5
 
 typedef enum _BlockSide
 {
@@ -16,9 +18,16 @@ typedef enum _BlockSide
     BLOCKSIDE_DOWN
 } BlockSide;
 
+typedef enum _BlockFlags
+{
+    BLOCKFLAG_NONE = 0,
+    BLOCKFLAG_TRANSPARENT = 1
+} BlockFlags;
+
 typedef struct _Block
 {
     unsigned int tex_pos[6][2];
+    int flags;
 } Block;
 
 
