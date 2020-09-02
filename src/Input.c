@@ -43,8 +43,8 @@ void keyboard_func(unsigned char key, int x, int y)
 {
     if(key >= 'a' && key <= 'z')
         key -= 'a' - 'A';
+    if(!key_states[key]) frame_key_states[key] = 1;
     key_states[key] = 1;
-    frame_key_states[key] = 1;
 }
 void keyboard_func_up(unsigned char key, int x, int y)
 {

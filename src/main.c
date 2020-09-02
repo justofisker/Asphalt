@@ -132,17 +132,16 @@ static void Render(void)
 
     vec3 movement = GLM_VEC3_ZERO_INIT;
 
-    //time_since_space += delta;
-    //if(is_key_just_pressed(' '))
-    //{
-    //    if(time_since_space < 0.5)
-    //        fly_mode = !fly_mode;
-    //    else
-    //        time_since_space = 0.f;
-    //}
-
-    //if(on_ground)
-    //    fly_mode = 0;
+    time_since_space += delta;
+    if(is_key_just_pressed(' '))
+    {
+        if(time_since_space < 0.5)
+            fly_mode = !fly_mode;
+        else
+            time_since_space = 0.f;
+    }
+    if(on_ground)
+        fly_mode = 0;
 
     if(!paused)
     {
