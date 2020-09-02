@@ -55,7 +55,7 @@ static void setup()
     crosshair = create_sprite(create_texture("res/texture/crosshair.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, 0, 0.0f));
 
     glm_vec3_zero(global_player_position);
-    global_player_position[1] = 100.0f;
+    global_player_position[1] = 255.0f;
     glm_vec3_zero(global_camera_rotation);
     glm_mat4_identity(global_view);
     glm_mat4_identity(global_projection);
@@ -143,6 +143,9 @@ static void Render(void)
     if(on_ground)
         fly_mode = 0;
 
+    if(fly_mode)
+        glm_vec3_zero(velocity);
+
     if(!paused)
     {
         vec3 direction = {0, 0, 0};
@@ -173,15 +176,13 @@ static void Render(void)
             if(is_key_pressed('s'))
                 direction[2] += 1.0f;
             if(is_key_pressed(' '))
-                direction[1] += 0.5f;
+                velocity[1] = 10.0f;
 #ifdef _WIN32
             if(GetKeyState(VK_SHIFT) & 0x8000)
 #else
             if(is_key_pressed('c'))
 #endif
-                direction[1] -= 0.5f;
-
-            glm_vec3_zero(velocity);
+                velocity[1] = -10.0f;
         }
         glm_normalize(direction);
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
@@ -189,12 +190,10 @@ static void Render(void)
         glm_vec3_add(movement, direction, movement);
     }
 
-    if(!fly_mode) {
-        vec3 velocity_movement;
-        glm_vec3_copy(velocity, velocity_movement);
-        glm_vec3_mul(velocity_movement, (vec3){delta, delta, delta}, velocity_movement);
-        glm_vec3_add(movement, velocity_movement, movement);
-    }
+    vec3 velocity_movement;
+    glm_vec3_copy(velocity, velocity_movement);
+    glm_vec3_mul(velocity_movement, (vec3){delta, delta, delta}, velocity_movement);
+    glm_vec3_add(movement, velocity_movement, movement);
 
     // Collison Detection
     {
