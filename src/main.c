@@ -27,27 +27,10 @@ unsigned int post_process_water, post_process_invert;
 #define PLAYER_SIZE 0.15f
 #define PLAYER_HEIGHT 1.65f
 
-void GLAPIENTRY
-MessageCallback( GLenum source,
-                 GLenum type,
-                 GLuint id,
-                 GLenum severity,
-                 GLsizei length,
-                 const GLchar* message,
-                 const void* userParam )
-{
-    if(type == GL_DEBUG_TYPE_ERROR)
-  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
-            type, severity, message );
-}
-
 Sprite *crosshair;
 
 static void setup()
 {
-    glEnable              ( GL_DEBUG_OUTPUT );
-    glDebugMessageCallback( MessageCallback, 0 );
     global_basic_shader = compile_shader("res/shader/basic_vertex.glsl", "res/shader/basic_fragment.glsl");
     post_process_water = compile_shader("res/shader/post_process_vertex.glsl", "res/shader/water_fragment.glsl");
     post_process_invert = compile_shader("res/shader/post_process_vertex.glsl", "res/shader/invert_fragment.glsl");
