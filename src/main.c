@@ -100,6 +100,8 @@ static void Resize(int w, int h)
 float time_passed = 0.0f;
 int frames = 0;
 float time_since_space = 1.f;
+float time_since_forward = 1.f;
+char sprint_mode = 0;
 char fly_mode = 0;
 
 vec3 velocity = GLM_VEC3_ZERO_INIT;
@@ -140,13 +142,32 @@ static void Render(void)
     vec3 movement = GLM_VEC3_ZERO_INIT;
 
     time_since_space += delta;
-    if(is_key_just_pressed(' '))
+    if(is_key_just_pressed(' ') && !paused)
     {
         if(time_since_space < 0.5)
             fly_mode = !fly_mode;
         else
             time_since_space = 0.f;
     }
+    time_since_forward += delta;
+    if(is_key_just_pressed('w') && !paused)
+    {
+        if(time_since_forward < 0.5)
+            sprint_mode = 1;
+        else
+            time_since_forward = 0.f;
+    }
+    if(is_key_just_pressed('r') && !paused)
+    {
+        sprint_mode = 1;
+    }
+    if(!is_key_pressed('w') || paused)
+    {
+        sprint_mode = 0;
+    }
+
+
+
     if(on_ground)
         fly_mode = 0;
 
@@ -204,7 +225,8 @@ static void Render(void)
                     velocity[1] = 8.f;
             }
         }
-        
+        if(sprint_mode)
+            speed *= 1.65f;
         glm_normalize(direction);
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
         glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
@@ -233,6 +255,8 @@ static void Render(void)
 #endif
                 velocity[1] = -10.0f;
         }
+        if(sprint_mode)
+            speed *= 1.65f;
         glm_normalize(direction);
         glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
         glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
