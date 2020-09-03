@@ -275,10 +275,10 @@ void create_vertex_index_buffer(Chunk* chunk, Vertex **solid_verticies, int *sol
                         }
                         if(up)
                         {
-                            verticies[offset + 0] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
-                            verticies[offset + 1] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
-                            verticies[offset + 2] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
-                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 0] = (Vertex){1.0f + x, 0.9f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 1] = (Vertex){1.0f + x, 0.9f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 2] = (Vertex){0.0f + x, 0.9f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 3] = (Vertex){0.0f + x, 0.9f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
                             offset += 4;
                         }
                         if(down)
@@ -438,7 +438,7 @@ int last_y = 0;
 
 void render_chunks()
 {
-    glm_perspective(glm_rad(70.0f), (float)global_width / global_height, 0.01f, 5000.0f, global_projection);
+    glm_perspective(glm_rad(70.0f), (float)global_width / global_height, 0.1f, 500.0f, global_projection);
     glm_mat4_identity(global_view);
     mat4 rotation;
     glm_euler_xyz(global_camera_rotation, rotation);
