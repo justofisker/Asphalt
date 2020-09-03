@@ -34,6 +34,7 @@ void render_start_postprocess()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS); 
 
 }
 
@@ -41,6 +42,22 @@ void render_end_postprocess()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
+}
+
+
+void resize_postprocess()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glDeleteTextures(1, &textureColorbuffer);
+    glGenTextures(1, &textureColorbuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, global_width, global_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, global_width, global_height); 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void setup_postprocess()

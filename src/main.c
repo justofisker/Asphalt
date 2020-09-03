@@ -75,6 +75,8 @@ static void Resize(int w, int h)
     global_height = h > 1 ? h : 1;
     glViewport(0, 0, global_width, global_height);
     
+    resize_postprocess();
+
     glClearDepth(1.0);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glEnable(GL_DEPTH_TEST);
