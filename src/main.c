@@ -23,7 +23,9 @@
 #include "PostProcess.h"
 
 static char paused = 0;
-unsigned int water_shader;
+unsigned int post_process_water, post_process_invert;
+#define PLAYER_SIZE 0.15f
+#define PLAYER_HEIGHT 1.65f
 
 void GLAPIENTRY
 MessageCallback( GLenum source,
@@ -47,7 +49,8 @@ static void setup()
     glEnable              ( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( MessageCallback, 0 );
     global_basic_shader = compile_shader("res/shader/basic_vertex.glsl", "res/shader/basic_fragment.glsl");
-    water_shader = compile_shader("res/shader/water_vertex.glsl", "res/shader/water_fragment.glsl");
+    post_process_water = compile_shader("res/shader/post_process_vertex.glsl", "res/shader/water_fragment.glsl");
+    post_process_invert = compile_shader("res/shader/post_process_vertex.glsl", "res/shader/invert_fragment.glsl");
     global_texture = create_texture("res/texture/blocks.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, 0, 0.0f);
 
     global_basic_model_loc = glGetUniformLocation(global_basic_shader, "u_Model");
@@ -79,6 +82,8 @@ static void setup()
     setup_input();
     setup_postprocess();
     set_mouse_mode(MOUSEMODE_CAPTURED);
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_LINE_SMOOTH);
 }
 
 static void Resize(int w, int h)
@@ -132,8 +137,6 @@ static void Render(void)
         global_camera_rotation[1] = fmodf(global_camera_rotation[1], GLM_PIf * 2);
     }
 
-    velocity[1] -= 24.0f * delta;
-
     vec3 movement = GLM_VEC3_ZERO_INIT;
 
     time_since_space += delta;
@@ -150,27 +153,69 @@ static void Render(void)
     if(fly_mode)
         glm_vec3_zero(velocity);
 
-    if(!paused)
+    if(!fly_mode)
     {
         vec3 direction = {0, 0, 0};
         float speed;
         // Normal Walk
-        if (!fly_mode) {
-            speed = 4.0f;
-            if(is_key_pressed('a'))
-                direction[0] -= 1.0f;
-            if(is_key_pressed('d'))
-                direction[0] += 1.0f;
-            if(is_key_pressed('w'))
-                direction[2] -= 1.0f;
-            if(is_key_pressed('s'))
-                direction[2] += 1.0f;
-            if(is_key_pressed(' ') && on_ground)
-                velocity[1] = 8.f;
+        char in_fluid = (get_block(get_block_id_at(floorf(global_player_position[0]),floorf(global_player_position[1]),floorf(global_player_position[2])))->flags & BLOCKFLAG_FLUID_MOVEMENT)
+                     || (get_block(get_block_id_at(floorf(global_player_position[0]),floorf(global_player_position[1] + 1.0f),floorf(global_player_position[2])))->flags & BLOCKFLAG_FLUID_MOVEMENT)
+                     || (get_block(get_block_id_at(floorf(global_player_position[0]),floorf(global_player_position[1] + PLAYER_HEIGHT),floorf(global_player_position[2])))->flags & BLOCKFLAG_FLUID_MOVEMENT);
+        if(in_fluid)
+        {
+            if(velocity[1] < -3.f)
+                velocity[1] += 50.f * delta;
+            else
+            {
+                velocity[1] -= 5.f * delta;
+                velocity[1] = max(-3.f, velocity[1]);
+            }
+            if (!paused) {
+                speed = 4.0f;
+                if(is_key_pressed('a'))
+                    direction[0] -= 1.0f;
+                if(is_key_pressed('d'))
+                    direction[0] += 1.0f;
+                if(is_key_pressed('w'))
+                    direction[2] -= 1.0f;
+                if(is_key_pressed('s'))
+                    direction[2] += 1.0f;
+                if(is_key_pressed(' '))
+                {
+                    velocity[1] += 14.f * delta;
+                    velocity[1] = min(velocity[1], 4.f);
+                }
+            }
         }
+        else
+        {
+            velocity[1] -= 24.0f * delta;
+            if (!paused) {
+                speed = 4.0f;
+                if(is_key_pressed('a'))
+                    direction[0] -= 1.0f;
+                if(is_key_pressed('d'))
+                    direction[0] += 1.0f;
+                if(is_key_pressed('w'))
+                    direction[2] -= 1.0f;
+                if(is_key_pressed('s'))
+                    direction[2] += 1.0f;
+                if(is_key_pressed(' ') && on_ground)
+                    velocity[1] = 8.f;
+            }
+        }
+        
+        glm_normalize(direction);
+        glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
+        glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
+        glm_vec3_add(movement, direction, movement);
+    }
+    else
+    {
+        float speed = 50.f;
+        vec3 direction = {0, 0, 0};
         // Fly
-        else {
-            speed = 50.f;
+        if(!paused) {
             if(is_key_pressed('a'))
                 direction[0] -= 1.0f;
             if(is_key_pressed('d'))
@@ -201,9 +246,6 @@ static void Render(void)
 
     // Collison Detection
     {
-        #define PLAYER_SIZE 0.15f
-        #define PLAYER_HEIGHT 1.65f
-
         //char change_x_positive = 
         char change_y_negative = (int)floorf(global_player_position[1] + movement[1]) - (int)floorf(global_player_position[1]);
         char change_x_positive = (int)floorf(global_player_position[0] + movement[0] + PLAYER_SIZE) - (int)floorf(global_player_position[0] + PLAYER_SIZE);
@@ -333,9 +375,9 @@ static void Render(void)
                 vec3 position;
                 glm_vec3_add(target, origin, position);
 
-                short id = get_block_id_at(floorf(position[0]), floorf(position[1]), floorf(position[2]));
+                char found_block = !(get_block(get_block_id_at(floorf(position[0]), floorf(position[1]), floorf(position[2])))->flags & BLOCKFLAG_NO_COLLISION);
 
-                if(id)
+                if(found_block)
                 {
                     set_block_at(floorf(position[0]), floorf(position[1]), floorf(position[2]), 0);
                     break;
@@ -375,9 +417,9 @@ static void Render(void)
                 vec3 position;
                 glm_vec3_add(target, origin, position);
 
-                short id = get_block_id_at(floorf(position[0]), floorf(position[1]), floorf(position[2]));
+                char found_block = !(get_block(get_block_id_at(floorf(position[0]), floorf(position[1]), floorf(position[2])))->flags & BLOCKFLAG_NO_COLLISION);
 
-                if(id)
+                if(found_block)
                 {
                     int player_pos[3] = { floorf(global_player_position[0]), floorf(global_player_position[1]), floorf(global_player_position[2]) };
                     int block_pos[3] = { floorf(position[0]), floorf(position[1]), floorf(position[2]) };
@@ -409,10 +451,10 @@ static void Render(void)
         water_color[2] = 1.0f;
         water_color[3] = 1.0f;
     }
-    glUseProgram(water_shader);
-    int water_color_loc = glGetUniformLocation(water_shader, "water_color");
+    glUseProgram(post_process_water);
+    int water_color_loc = glGetUniformLocation(post_process_water, "water_color");
     glUniform4fv(water_color_loc, 1, water_color);
-    do_postprocess(water_shader, 0);
+    do_postprocess(post_process_water, 0);
 
     crosshair->position[0] = global_width / 2;
     crosshair->position[1] = global_height / 2;
@@ -436,7 +478,8 @@ int main(int argc, char **argv)
     }
 
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE | GLUT_MULTISAMPLE);
+    
     glutInitWindowSize(global_width, global_height);
     glutCreateWindow(WINDOW_TITLE);
 

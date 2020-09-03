@@ -76,7 +76,7 @@ void setup_blocks()
     blocks[BLOCK_WATER].tex_pos[BLOCKSIDE_UP][1]    = 0;
     blocks[BLOCK_WATER].tex_pos[BLOCKSIDE_DOWN][0]  = 4;
     blocks[BLOCK_WATER].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
-    blocks[BLOCK_WATER].flags = BLOCKFLAG_TRANSPARENT | BLOCKFLAG_NO_COLLISION;
+    blocks[BLOCK_WATER].flags = BLOCKFLAG_TRANSPARENT | BLOCKFLAG_NO_COLLISION | BLOCKFLAG_FLUID_MOVEMENT;
 
     blocks[BLOCK_SAND].tex_pos[BLOCKSIDE_NORTH][0] = 5;
     blocks[BLOCK_SAND].tex_pos[BLOCKSIDE_NORTH][1] = 0;
