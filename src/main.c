@@ -394,11 +394,13 @@ static void Render(void)
     }
 
     if(is_key_just_pressed('1'))
-        block_selected = 1;
+        block_selected = BLOCK_GRASS;
     if(is_key_just_pressed('2'))
-        block_selected = 2;
+        block_selected = BLOCK_DIRT;
     if(is_key_just_pressed('3'))
-        block_selected = 3;
+        block_selected = BLOCK_STONE;
+    if(is_key_just_pressed('4'))
+        block_selected = BLOCK_SAND;
     // Raycast Place BLock
     if(!paused && is_mouse_button_just_pressed(GLUT_RIGHT_BUTTON))
     {
@@ -428,14 +430,18 @@ static void Render(void)
 
                 if(found_block)
                 {
-                    int player_pos[3] = { floorf(global_player_position[0]), floorf(global_player_position[1]), floorf(global_player_position[2]) };
+                    glm_vec3_sub(position, ray_inc, position);
+
                     int block_pos[3] = { floorf(position[0]), floorf(position[1]), floorf(position[2]) };
 
-                    if(player_pos[0] == block_pos[0] && player_pos[2] == block_pos[2] && (player_pos[1] == block_pos[1] || player_pos[1] + 1 == block_pos[1]))
-                        break;
-
-
-                    glm_vec3_sub(position, ray_inc, position);
+                    {
+                        if( ((int)floorf(global_player_position[0]) == block_pos[0] && (int)floorf(global_player_position[1]) == block_pos[1] && (int)floorf(global_player_position[2]) == block_pos[2])
+                         || ((int)floorf(global_player_position[0]) == block_pos[0] && (int)floorf(global_player_position[1] + 1.0f) == block_pos[1] && (int)floorf(global_player_position[2]) == block_pos[2])
+                         || ((int)floorf(global_player_position[0]) == block_pos[0] && (int)floorf(global_player_position[1] + PLAYER_HEIGHT) == block_pos[1] && (int)floorf(global_player_position[2]) == block_pos[2]) )
+                        {
+                            break;
+                        }
+                    }
 
                     set_block_at(floorf(position[0]), floorf(position[1]), floorf(position[2]), block_selected);
 
