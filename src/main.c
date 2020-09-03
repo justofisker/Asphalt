@@ -461,8 +461,8 @@ static void Render(void)
     vec4 water_color = {1.0f, 1.0f, 1.0f, 1.0f};
     if(get_block_id_at(floorf(global_player_position[0]), floorf(global_player_position[1] + global_camera_offset[1]), floorf(global_player_position[2])) == BLOCK_WATER)
     {
-        water_color[0] = 0.5f;
-        water_color[1] = 0.5f;
+        water_color[0] = 0.4f;
+        water_color[1] = 0.4f;
         water_color[2] = 1.0f;
         water_color[3] = 1.0f;
     }
