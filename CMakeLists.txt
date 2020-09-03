@@ -15,6 +15,7 @@ add_executable(Asphalt
     "src/Block.c"
     "src/Sprite.c"
     "src/Input.c"
+    "src/PostProcess.c"
     "thirdparty/glad/src/glad.c"
     )
 

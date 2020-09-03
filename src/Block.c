@@ -20,7 +20,7 @@ void setup_blocks()
     blocks[BLOCK_AIR].tex_pos[BLOCKSIDE_UP][1]    = 0;
     blocks[BLOCK_AIR].tex_pos[BLOCKSIDE_DOWN][0]  = 0;
     blocks[BLOCK_AIR].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
-    blocks[BLOCK_AIR].flags = BLOCKFLAG_TRANSPARENT;
+    blocks[BLOCK_AIR].flags = BLOCKFLAG_TRANSPARENT | BLOCKFLAG_NO_COLLISION;
 
     blocks[BLOCK_GRASS].tex_pos[BLOCKSIDE_NORTH][0] = 1;
     blocks[BLOCK_GRASS].tex_pos[BLOCKSIDE_NORTH][1] = 0;
@@ -76,7 +76,7 @@ void setup_blocks()
     blocks[BLOCK_WATER].tex_pos[BLOCKSIDE_UP][1]    = 0;
     blocks[BLOCK_WATER].tex_pos[BLOCKSIDE_DOWN][0]  = 4;
     blocks[BLOCK_WATER].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
-    blocks[BLOCK_WATER].flags = BLOCKFLAG_TRANSPARENT;
+    blocks[BLOCK_WATER].flags = BLOCKFLAG_TRANSPARENT | BLOCKFLAG_NO_COLLISION;
 
     blocks[BLOCK_SAND].tex_pos[BLOCKSIDE_NORTH][0] = 5;
     blocks[BLOCK_SAND].tex_pos[BLOCKSIDE_NORTH][1] = 0;

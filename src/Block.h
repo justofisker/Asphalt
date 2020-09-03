@@ -21,7 +21,8 @@ typedef enum _BlockSide
 typedef enum _BlockFlags
 {
     BLOCKFLAG_NONE = 0,
-    BLOCKFLAG_TRANSPARENT = 1
+    BLOCKFLAG_TRANSPARENT = 1,
+    BLOCKFLAG_NO_COLLISION = 2,
 } BlockFlags;
 
 typedef struct _Block

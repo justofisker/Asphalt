@@ -525,6 +525,7 @@ void render_chunks()
             }
         }
     }
+    glDisable(GL_CULL_FACE);
     for(x = 0; x < CHUNK_ARR_SIZE; x++)
     {
         for(y = 0; y < CHUNK_ARR_SIZE; y++)
@@ -535,6 +536,7 @@ void render_chunks()
             }
         }
     }
+    glEnable(GL_CULL_FACE);
 }
 
 short get_block_id_at(int x, int y, int z)
