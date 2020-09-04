@@ -1,6 +1,6 @@
 #version 330 core
 
-uniform vec4 u_WaterColor = vec4(0.4, 0.4, 1.0, 1.0);
+uniform vec4 u_WaterColor = vec4(0.2, 0.25, 0.7, 1.0);
 uniform sampler2D u_Color;
 uniform sampler2D u_Depth;
 uniform bool u_bInWater;
@@ -40,14 +40,16 @@ void main()
     if(u_bInWater)
     {
         color = color * u_WaterColor;
-
-        color = vec4(color.rgb * vec3(pow((1.0 - DEPTH_NORMAL), 50)), 1.0);
+        float water_fog_near = 5.0;
+        float water_fog_far = 500.0;
+        float fog_amount = pow(1.0 - (min(max((DEPTH - water_fog_near) / (water_fog_far - water_fog_near), 0.0), 1.0)), 3);
+        color = vec4(color.rgb * vec3(fog_amount) + u_WaterColor.rgb * vec3(1 - fog_amount), 1.0);
 
     }
 
     if(!u_bInWater)
     {
-        float fog_amount = pow(1.0 - (min(max((DEPTH - (u_FogNear)) / (u_FogFar - u_FogNear), 0.0), 1.0)), u_FogExponent);
+        float fog_amount = pow(1.0 - (min(max((DEPTH - u_FogNear) / (u_FogFar - u_FogNear), 0.0), 1.0)), u_FogExponent);
         color = vec4(color.rgb * vec3(fog_amount) + u_SkyColor * vec3(1 - fog_amount), 1.0);
     }
 
