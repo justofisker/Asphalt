@@ -18,7 +18,6 @@
 #include "Chunk.h"
 #include "Texture.h"
 #include "Block.h"
-#include "Sprite.h"
 #include "Input.h"
 #include "PostProcess.h"
 
@@ -26,8 +25,7 @@ static char paused = 0;
 unsigned int postprocess_shader;
 #define PLAYER_SIZE 0.15f
 #define PLAYER_HEIGHT 1.65f
-
-Sprite *crosshair;
+vec3 sky_color = {0.4f, 0.5f, 1.0f};
 
 static void setup()
 {
@@ -39,8 +37,6 @@ static void setup()
     global_block_view_loc = glGetUniformLocation(global_block_shader, "u_View");
     global_block_projection_loc = glGetUniformLocation(global_block_shader, "u_Projection");
     global_block_texture_loc = glGetUniformLocation(global_block_shader, "u_Texture");
-
-    crosshair = create_sprite(create_texture("res/texture/crosshair.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, 0, 0.0f));
 
     glm_vec3_zero(global_player_position);
     global_player_position[1] = 255.0f;
@@ -94,7 +90,7 @@ char fullscreen = 0;
 static void Render(void)
 {
     input_render_start();
-    glClearColor(0.0f, 0.2f, 0.7f, 1.0f);
+    glClearColor(sky_color[0], sky_color[1], sky_color[2], 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     clock_t time = clock();
@@ -466,20 +462,20 @@ static void Render(void)
     }
 
     render_start_postprocess();
-    glClearColor(107.f / 255.f, 213.f / 255.f, 234.f / 255.f, 1.0f);
+    glClearColor(sky_color[0], sky_color[1], sky_color[2], 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     render_chunks();
     render_end_postprocess();
     glUseProgram(postprocess_shader);
     int u_bInWater = glGetUniformLocation(postprocess_shader, "u_bInWater");
     glUniform1i (u_bInWater, (get_block_id_at(floorf(global_player_position[0]), floorf(global_player_position[1] + global_camera_offset[1]), floorf(global_player_position[2])) == BLOCK_WATER) );
+    int u_ScreenHeight = glGetUniformLocation(postprocess_shader, "u_ScreenHeight");
+    glUniform1i(u_ScreenHeight, global_height);
+    int u_ScreenWidth = glGetUniformLocation(postprocess_shader, "u_ScreenWidth");
+    glUniform1i(u_ScreenWidth, global_width);
+    int u_SkyColor = glGetUniformLocation(postprocess_shader, "u_SkyColor");
+    glUniform3fv(u_SkyColor, 1, sky_color);
     do_postprocess(postprocess_shader, 0, 1);
-
-    crosshair->position[0] = global_width / 2;
-    crosshair->position[1] = global_height / 2;
-    glDisable(GL_DEPTH_TEST);
-    draw_sprite(crosshair);
-    glEnable(GL_DEPTH_TEST);
 
     input_render_end();
 

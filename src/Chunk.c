@@ -573,7 +573,7 @@ void generate_chunks()
 
 void render_chunks()
 {
-    glm_perspective(glm_rad(70.0f), (float)global_width / global_height, 0.1f, 1000.0f, global_projection);
+    glm_perspective(glm_rad(70.0f), (float)global_width / global_height, 0.1f, 700.0f, global_projection);
     glm_mat4_identity(global_view);
     mat4 rotation;
     glm_euler_xyz(global_camera_rotation, rotation);
@@ -588,8 +588,6 @@ void render_chunks()
     glUniform1i(global_block_texture_loc, 0);
 
     int x, y;
-
-    clock_t time_start = clock();
     for(x = 0; x < CHUNK_ARR_SIZE; x++)
     {
         for(y = 0; y < CHUNK_ARR_SIZE; y++)
@@ -609,7 +607,6 @@ void render_chunks()
             Chunk *chunk = chunks[x][y];
             if(chunk && chunk->create_mesh && !chunk->locked)
             {
-                while(chunk->locked) Sleep(0);
                 chunk->locked = 1;
                 create_mesh_from_chunk(chunk);
                 chunks[x][y]->locked = 0;
