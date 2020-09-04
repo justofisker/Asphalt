@@ -28,7 +28,7 @@ Index indicies[6] = {
 Mesh *mesh;
 
 
-unsigned int framebuffer, textureColorbuffer, rbo;
+unsigned int framebuffer, textureColorbuffer, textureDepthBuffer, rbo;
 
 void render_start_postprocess()
 {
@@ -49,12 +49,23 @@ void resize_postprocess()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glDeleteTextures(1, &textureColorbuffer);
-    glGenTextures(1, &textureColorbuffer);
-    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, global_width, global_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+    glDeleteTextures(1, &textureDepthBuffer);
+    {
+        glGenTextures(1, &textureColorbuffer);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, global_width, global_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+    }
+    {
+        glGenTextures(1, &textureDepthBuffer);
+        glBindTexture(GL_TEXTURE_2D, textureDepthBuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, global_width, global_height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, textureDepthBuffer, 0);
+    }
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, global_width, global_height); 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -89,12 +100,22 @@ void setup_postprocess()
     // Framebuffer
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glGenTextures(1, &textureColorbuffer);
-    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, global_width, global_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+    {
+        glGenTextures(1, &textureColorbuffer);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, global_width, global_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+    }
+    {
+        glGenTextures(1, &textureDepthBuffer);
+        glBindTexture(GL_TEXTURE_2D, textureDepthBuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, global_width, global_height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, textureDepthBuffer, 0);
+    }
     glGenRenderbuffers(1, &rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, global_width, global_height); 
@@ -103,13 +124,21 @@ void setup_postprocess()
         printf("Framebuffer is not complete!\n");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-void do_postprocess(unsigned int shader, unsigned int slot)
+void do_postprocess(unsigned int shader, unsigned int color_slot, unsigned int depth_slot)
 {
     glBindVertexArray(mesh->array_object);
-    int screentex_loc = glGetUniformLocation(shader, "screen_tex");
-    glUniform1i(screentex_loc, slot);
-    glActiveTexture(GL_TEXTURE0 + slot);
-    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    int u_Color = glGetUniformLocation(shader, "u_Color");
+    if(u_Color != -1) {
+        glUniform1i(u_Color, color_slot);
+        glActiveTexture(GL_TEXTURE0 + color_slot);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    }
+    int u_Depth = glGetUniformLocation(shader, "u_Depth");
+    if(u_Depth != -1) {
+        glUniform1i(u_Depth, depth_slot);
+        glActiveTexture(GL_TEXTURE0 + depth_slot);
+        glBindTexture(GL_TEXTURE_2D, textureDepthBuffer);
+    }
     glDrawElements(GL_TRIANGLES, mesh->index_count, mesh->index_type, NULL);
     glBindVertexArray(0);
 }

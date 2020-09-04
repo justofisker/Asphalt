@@ -23,7 +23,7 @@
 #include "PostProcess.h"
 
 static char paused = 0;
-unsigned int post_process_water, post_process_invert;
+unsigned int postprocess_shader;
 #define PLAYER_SIZE 0.15f
 #define PLAYER_HEIGHT 1.65f
 
@@ -32,8 +32,7 @@ Sprite *crosshair;
 static void setup()
 {
     global_basic_shader = compile_shader("res/shader/basic_vertex.glsl", "res/shader/basic_fragment.glsl");
-    post_process_water = compile_shader("res/shader/post_process_vertex.glsl", "res/shader/water_fragment.glsl");
-    post_process_invert = compile_shader("res/shader/post_process_vertex.glsl", "res/shader/invert_fragment.glsl");
+    postprocess_shader = compile_shader("res/shader/postprocess_vertex.glsl", "res/shader/postprocess_fragment.glsl");
     global_texture = create_texture("res/texture/blocks.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, 0, 0.0f);
 
     global_basic_model_loc = glGetUniformLocation(global_basic_shader, "u_Model");
@@ -466,10 +465,10 @@ static void Render(void)
         water_color[2] = 1.0f;
         water_color[3] = 1.0f;
     }
-    glUseProgram(post_process_water);
-    int water_color_loc = glGetUniformLocation(post_process_water, "water_color");
+    glUseProgram(postprocess_shader);
+    int water_color_loc = glGetUniformLocation(postprocess_shader, "u_WaterColor");
     glUniform4fv(water_color_loc, 1, water_color);
-    do_postprocess(post_process_water, 0);
+    do_postprocess(postprocess_shader, 0, 1);
 
     crosshair->position[0] = global_width / 2;
     crosshair->position[1] = global_height / 2;
@@ -478,6 +477,22 @@ static void Render(void)
     glEnable(GL_DEPTH_TEST);
 
     input_render_end();
+
+    GLenum error = glGetError();
+    while(error != GL_NO_ERROR)
+    {
+        char *error_name;
+        switch(error) {
+            case GL_INVALID_OPERATION:              error_name="INVALID_OPERATION";              break;
+            case GL_INVALID_ENUM:                   error_name="INVALID_ENUM";                   break;
+            case GL_INVALID_VALUE:                  error_name="INVALID_VALUE";                  break;
+            case GL_OUT_OF_MEMORY:                  error_name="OUT_OF_MEMORY";                  break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION:  error_name="INVALID_FRAMEBUFFER_OPERATION";  break;
+            default:                                error_name="UNKNOWN ERROR";                  break;
+        }
+        printf("OpenGL Error: %s!\n", error_name);
+        error = glGetError();
+    }
 
     glutSwapBuffers();
     glutPostRedisplay();
