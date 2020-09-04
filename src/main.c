@@ -128,7 +128,7 @@ static void Render(void)
     time_since_space += delta;
     if(is_key_just_pressed(' ') && !paused)
     {
-        if(time_since_space < 0.5)
+        if(time_since_space < 0.25)
             fly_mode = !fly_mode;
         else
             time_since_space = 0.f;
@@ -136,7 +136,7 @@ static void Render(void)
     time_since_forward += delta;
     if(is_key_just_pressed('w') && !paused)
     {
-        if(time_since_forward < 0.5)
+        if(time_since_forward < 0.25)
             sprint_mode = 1;
         else
             time_since_forward = 0.f;
@@ -161,7 +161,7 @@ static void Render(void)
     if(!fly_mode)
     {
         vec3 direction = {0, 0, 0};
-        float speed;
+        float speed = 0.0f;
         // Normal Walk
         char in_fluid = (get_block(get_block_id_at(floorf(global_player_position[0]),floorf(global_player_position[1]),floorf(global_player_position[2])))->flags & BLOCKFLAG_FLUID_MOVEMENT)
                      || (get_block(get_block_id_at(floorf(global_player_position[0]),floorf(global_player_position[1] + 1.0f),floorf(global_player_position[2])))->flags & BLOCKFLAG_FLUID_MOVEMENT)

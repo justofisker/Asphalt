@@ -409,7 +409,7 @@ void free_chunk(Chunk *chunk)
     free(chunk);
 }
 
-#define CHUNK_ARR_SIZE 128
+#define CHUNK_ARR_SIZE 64
 static Chunk *chunks[CHUNK_ARR_SIZE][CHUNK_ARR_SIZE];
 
 Chunk *get_chunk(int x, int y)
@@ -438,7 +438,7 @@ int last_y = 0;
 
 void render_chunks()
 {
-    glm_perspective(glm_rad(70.0f), (float)global_width / global_height, 0.1f, 500.0f, global_projection);
+    glm_perspective(glm_rad(70.0f), (float)global_width / global_height, 0.1f, 1000.0f, global_projection);
     glm_mat4_identity(global_view);
     mat4 rotation;
     glm_euler_xyz(global_camera_rotation, rotation);
@@ -532,7 +532,8 @@ void render_chunks()
         {
             if(chunks[x][y])
             {
-                render_chunk(chunks[x][y], 1);
+                if(chunks[x][y]->transparent_mesh->index_count)
+                    render_chunk(chunks[x][y], 1);
             }
         }
     }
