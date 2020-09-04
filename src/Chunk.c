@@ -49,6 +49,7 @@ DWORD WINAPI create_chunks(LPVOID lpParam)
 
 #endif
 {
+    srand(time(0));
     while(1)
     {
 
