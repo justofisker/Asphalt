@@ -355,6 +355,7 @@ static void Render(void)
     frames++;
     if(time_passed >= 1.0f)
     {
+        printf("fps: %d\n", frames);
         frames = 0;
         time_passed -= 1.0f;
     }
@@ -457,17 +458,9 @@ static void Render(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     render_chunks();
     render_end_postprocess();
-    vec4 water_color = {1.0f, 1.0f, 1.0f, 1.0f};
-    if(get_block_id_at(floorf(global_player_position[0]), floorf(global_player_position[1] + global_camera_offset[1]), floorf(global_player_position[2])) == BLOCK_WATER)
-    {
-        water_color[0] = 0.4f;
-        water_color[1] = 0.4f;
-        water_color[2] = 1.0f;
-        water_color[3] = 1.0f;
-    }
     glUseProgram(postprocess_shader);
-    int water_color_loc = glGetUniformLocation(postprocess_shader, "u_WaterColor");
-    glUniform4fv(water_color_loc, 1, water_color);
+    int u_bInWater = glGetUniformLocation(postprocess_shader, "u_bInWater");
+    glUniform1i (u_bInWater, (get_block_id_at(floorf(global_player_position[0]), floorf(global_player_position[1] + global_camera_offset[1]), floorf(global_player_position[2])) == BLOCK_WATER) );
     do_postprocess(postprocess_shader, 0, 1);
 
     crosshair->position[0] = global_width / 2;
