@@ -14,11 +14,11 @@ extern vec3 global_camera_rotation;
 extern mat4 global_view;
 extern mat4 global_projection;
 
-extern int global_basic_model_loc;
-extern int global_basic_view_loc;
-extern int global_basic_projection_loc;
-extern int global_basic_texture_loc;
-extern unsigned int global_basic_shader;
+extern int global_block_model_loc;
+extern int global_block_view_loc;
+extern int global_block_projection_loc;
+extern int global_block_texture_loc;
+extern unsigned int global_block_shader;
 extern Texture *global_texture;
 
 extern int global_height;

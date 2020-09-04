@@ -31,14 +31,14 @@ Sprite *crosshair;
 
 static void setup()
 {
-    global_basic_shader = compile_shader("res/shader/basic_vertex.glsl", "res/shader/basic_fragment.glsl");
+    global_block_shader = compile_shader("res/shader/block_vertex.glsl", "res/shader/block_fragment.glsl");
     postprocess_shader = compile_shader("res/shader/postprocess_vertex.glsl", "res/shader/postprocess_fragment.glsl");
     global_texture = create_texture("res/texture/blocks.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, 0, 0.0f);
 
-    global_basic_model_loc = glGetUniformLocation(global_basic_shader, "u_Model");
-    global_basic_view_loc = glGetUniformLocation(global_basic_shader, "u_View");
-    global_basic_projection_loc = glGetUniformLocation(global_basic_shader, "u_Projection");
-    global_basic_texture_loc = glGetUniformLocation(global_basic_shader, "u_Texture");
+    global_block_model_loc = glGetUniformLocation(global_block_shader, "u_Model");
+    global_block_view_loc = glGetUniformLocation(global_block_shader, "u_View");
+    global_block_projection_loc = glGetUniformLocation(global_block_shader, "u_Projection");
+    global_block_texture_loc = glGetUniformLocation(global_block_shader, "u_Texture");
 
     crosshair = create_sprite(create_texture("res/texture/crosshair.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, 0, 0.0f));
 

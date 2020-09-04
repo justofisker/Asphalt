@@ -395,7 +395,7 @@ void render_chunk(Chunk *chunk, char transparent)
     mat4 model = GLM_MAT4_IDENTITY_INIT;
     glm_translate(model, (vec3){chunk->x * CHUNK_SIZE_XZ, 0.0f, chunk->y * CHUNK_SIZE_XZ});
 
-    glUniformMatrix4fv(global_basic_model_loc, 1, GL_FALSE, model[0]);
+    glUniformMatrix4fv(global_block_model_loc, 1, GL_FALSE, model[0]);
     glBindVertexArray((transparent ? chunk->transparent_mesh : chunk->mesh)->array_object);
     glDrawElements(GL_TRIANGLES, (transparent ? chunk->transparent_mesh : chunk->mesh)->index_count, (transparent ? chunk->transparent_mesh : chunk->mesh)->index_type, (void*)0);
 
@@ -446,11 +446,11 @@ void render_chunks()
     glm_translate(global_view, (vec3){-global_player_position[0], -global_player_position[1], -global_player_position[2]});
     glm_translate(global_view, (vec3){-global_camera_offset[0], -global_camera_offset[1], -global_camera_offset[2]});
 
-    glUseProgram(global_basic_shader);
+    glUseProgram(global_block_shader);
     bind_texture(global_texture, 0);
-    glUniformMatrix4fv(global_basic_view_loc, 1, GL_FALSE, global_view[0]);
-    glUniformMatrix4fv(global_basic_projection_loc, 1, GL_FALSE, global_projection[0]);
-    glUniform1i(global_basic_texture_loc, 0);
+    glUniformMatrix4fv(global_block_view_loc, 1, GL_FALSE, global_view[0]);
+    glUniformMatrix4fv(global_block_projection_loc, 1, GL_FALSE, global_projection[0]);
+    glUniform1i(global_block_texture_loc, 0);
 
     int x, y;
 
