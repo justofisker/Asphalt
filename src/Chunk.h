@@ -4,6 +4,8 @@
 #define CHUNK_SIZE_XZ 16
 #define CHUNK_SIZE_Y 256
 
+typedef struct _Vertex Vertex;
+
 typedef struct _Mesh Mesh;
 
 typedef struct _Chunk
@@ -12,10 +14,21 @@ typedef struct _Chunk
     Mesh *mesh;
     Mesh *transparent_mesh;
     int x, y;
+
+    Vertex *solid_vertex_buffer;
+    int solid_vertex_count;
+    unsigned int *solid_index_buffer;
+    int solid_index_count;
+    Vertex *transparent_vertex_buffer;
+    int transparent_vertex_count;
+    unsigned int *transparent_index_buffer;
+    int transparent_index_count;
+    char create_mesh;
+    char locked;
 } Chunk;
 
 Chunk *create_chunk(int x, int y);
-void create_mesh_from_chunk(Chunk *chunk);
+void create_vertex_index_buffer(Chunk* chunk);
 void regenerate_chunk_mesh(Chunk *chunk);
 void render_chunk(Chunk *chunk, char transparent);
 void free_chunk(Chunk *chunk);

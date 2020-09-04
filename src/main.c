@@ -59,13 +59,11 @@ static void setup()
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    generate_chunks();
     setup_blocks();
     setup_input();
     setup_postprocess();
     set_mouse_mode(MOUSEMODE_CAPTURED);
-    glEnable(GL_MULTISAMPLE);
-    glEnable(GL_LINE_SMOOTH);
+    generate_chunks();
 }
 
 static void Resize(int w, int h)
@@ -218,7 +216,7 @@ static void Render(void)
     }
     else
     {
-        float speed = 50.f;
+        float speed = 150.f;
         vec3 direction = {0, 0, 0};
         // Fly
         if(!paused) {
@@ -501,7 +499,7 @@ int main(int argc, char **argv)
     }
 
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE | GLUT_MULTISAMPLE);
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
     
     glutInitWindowSize(global_width, global_height);
     glutCreateWindow(WINDOW_TITLE);
