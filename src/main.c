@@ -89,6 +89,7 @@ char fly_mode = 0;
 vec3 velocity = GLM_VEC3_ZERO_INIT;
 char on_ground = 0;
 int block_selected = 1;
+char fullscreen = 0;
 
 static void Render(void)
 {
@@ -146,6 +147,19 @@ static void Render(void)
     if(!is_key_pressed('w') || paused)
     {
         sprint_mode = 0;
+    }
+    if(is_key_just_pressed('f'))
+    {
+        fullscreen = !fullscreen;
+        if(fullscreen)
+        {
+            glutFullScreen();
+        }
+        else
+        {
+            glutPositionWindow(glutGet(GLUT_SCREEN_WIDTH) / 2 - 1280 / 2, glutGet(GLUT_SCREEN_HEIGHT) / 2 - 720 / 2);
+            glutReshapeWindow(1280, 720);
+        }
     }
 
 
