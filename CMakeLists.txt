@@ -25,6 +25,8 @@ target_link_libraries(Asphalt freeglut_static)
 
 if (UNIX)
     target_link_libraries(Asphalt dl)
+    find_package (Threads)
+    target_link_libraries (Asphalt ${CMAKE_THREAD_LIBS_INIT})
 endif (UNIX)
 
 if (MSVC)

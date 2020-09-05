@@ -181,7 +181,7 @@ static void Render(void)
             else
             {
                 velocity[1] -= 5.f * delta;
-                velocity[1] = max(-3.f, velocity[1]);
+                velocity[1] = fmaxf(-3.f, velocity[1]);
             }
             if (!paused) {
                 speed = 4.0f;
@@ -196,7 +196,7 @@ static void Render(void)
                 if(is_key_pressed(' '))
                 {
                     velocity[1] += 14.f * delta;
-                    velocity[1] = min(velocity[1], 4.f);
+                    velocity[1] = fminf(velocity[1], 4.f);
                 }
             }
         }

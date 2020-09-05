@@ -1,6 +1,6 @@
 #include "PostProcess.h"
 #include "Mesh.h"
-#include "GLobals.h"
+#include "Globals.h"
 
 #include <cglm/cglm.h>
 #include <glad/glad.h>

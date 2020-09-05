@@ -5,6 +5,12 @@
 #include "Globals.h"
 #include "Util.h"
 
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -40,13 +46,30 @@ void set_chunk(int x, int y, Chunk* chunk)
         chunks_to_free[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)] = previous;
 }
 
+void _sleep(int ms){
+#ifdef WIN32
+    Sleep(ms);
+#else
+    if (ms >= 1000)
+      sleep(ms / 1000);
+    usleep((ms % 1000) * 1000);
+#endif
+}
+
+
+#define WAIT_FOR_UNLOCK(chunk) while(chunk->locked) { _sleep(0);}
+
 #ifdef _WIN32
 HANDLE chunk_thread;
 DWORD chunk_thread_id;
 
 DWORD WINAPI create_chunks(LPVOID lpParam)
 #elif __linux__
+#include <pthread.h>
 
+pthread_t generation_thread;
+
+void* create_chunks(void* arg)
 #endif
 {
     srand(time(0));
@@ -75,13 +98,13 @@ DWORD WINAPI create_chunks(LPVOID lpParam)
                     Chunk *chunk = create_chunk(x + cur_x, y + cur_y);
                     create_vertex_index_buffer(chunk);
                     chunk->create_mesh = 1;
-                    if(chunks[mod(x + cur_x, CHUNK_ARR_SIZE)][mod(y + cur_y, CHUNK_ARR_SIZE)]) while(chunks[mod(x + cur_x, CHUNK_ARR_SIZE)][mod(y + cur_y, CHUNK_ARR_SIZE)]->locked) { Sleep(0); }
+                    if(chunks[mod(x + cur_x, CHUNK_ARR_SIZE)][mod(y + cur_y, CHUNK_ARR_SIZE)]) WAIT_FOR_UNLOCK(chunks[mod(x + cur_x, CHUNK_ARR_SIZE)][mod(y + cur_y, CHUNK_ARR_SIZE)])
                     set_chunk(x + cur_x, y + cur_y, chunk);
                     
                     chunk = get_chunk(x + cur_x - 1, y + cur_y);
                     if(chunk)
                     {
-                        while(chunk->locked) { Sleep(0); }
+                        WAIT_FOR_UNLOCK(chunk)
                         chunk->locked = 1;
                         create_vertex_index_buffer(chunk);
                         chunk->create_mesh = 1;
@@ -90,7 +113,7 @@ DWORD WINAPI create_chunks(LPVOID lpParam)
                     chunk = get_chunk(x + cur_x + 1, y + cur_y);
                     if(chunk)
                     {
-                        while(chunk->locked) { Sleep(0); }
+                        WAIT_FOR_UNLOCK(chunk)
                         chunk->locked = 1;
                         create_vertex_index_buffer(chunk);
                         chunk->create_mesh = 1;
@@ -99,7 +122,7 @@ DWORD WINAPI create_chunks(LPVOID lpParam)
                     chunk = get_chunk(x + cur_x, y + cur_y - 1);
                     if(chunk)
                     {
-                        while(chunk->locked) { Sleep(0); }
+                        WAIT_FOR_UNLOCK(chunk)
                         chunk->locked = 1;
                         create_vertex_index_buffer(chunk);
                         chunk->create_mesh = 1;
@@ -108,7 +131,7 @@ DWORD WINAPI create_chunks(LPVOID lpParam)
                     chunk = get_chunk(x + cur_x, y + cur_y + 1);
                     if(chunk)
                     {
-                        while(chunk->locked) { Sleep(0); }
+                        WAIT_FOR_UNLOCK(chunk)
                         chunk->locked = 1;
                         create_vertex_index_buffer(chunk);
                         chunk->create_mesh = 1;
@@ -142,9 +165,11 @@ DWORD WINAPI create_chunks(LPVOID lpParam)
         last_y = cur_y;
     }
 
-    Sleep(50);
+    _sleep(50);
 
     }
+
+    return NULL;
 }
 
 Chunk *create_chunk(int _x, int _y)
@@ -569,6 +594,8 @@ void generate_chunks()
     memset(chunks_to_free, 0, sizeof(chunks_to_free));
 #ifdef _WIN32
     chunk_thread = CreateThread(NULL, 0, create_chunks, NULL, 0, &chunk_thread_id);
+#elif __linux__
+    pthread_create(&generation_thread, NULL, create_chunks, NULL);
 #endif
 }
 
