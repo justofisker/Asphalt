@@ -27,6 +27,12 @@ if (UNIX)
     target_link_libraries(Asphalt dl)
 endif (UNIX)
 
+if (MSVC)
+    set_target_properties(Asphalt PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(TargetDir)..\\")
+    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Asphalt)
+endif (MSVC)
+
+
 target_include_directories(Asphalt PUBLIC
     "thirdparty/cglm/include"
     "thirdparty/freeGLUT/freeglut/freeglut/include"
