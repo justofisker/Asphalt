@@ -4,6 +4,12 @@ project(Asphalt VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
+if (WIN32)
+    set(APP_ICON_RESOURCE_WINDOWS "res/icon/Asphalt.rc")
+else()
+    set(APP_ICON_RESOURCE_WINDOWS "")
+endif()
+
 add_executable(Asphalt
     "src/main.c"
     "src/Chunk.c"
@@ -17,6 +23,7 @@ add_executable(Asphalt
     "src/Input.c"
     "src/PostProcess.c"
     "thirdparty/glad/src/glad.c"
+    "${APP_ICON_RESOURCE_WINDOWS}"
     )
 
 add_subdirectory("thirdparty/freeGLUT/freeglut/freeglut")
@@ -30,10 +37,9 @@ if (UNIX)
 endif (UNIX)
 
 if (MSVC)
-    set_target_properties(Asphalt PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(TargetDir)..\\")
+    set_target_properties(Asphalt PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Asphalt)
 endif (MSVC)
-
 
 target_include_directories(Asphalt PUBLIC
     "thirdparty/cglm/include"
