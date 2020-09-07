@@ -23,7 +23,7 @@
 
 static char paused = 0;
 unsigned int postprocess_shader;
-#define PLAYER_SIZE 0.15f
+#define PLAYER_SIZE 0.2f
 #define PLAYER_HEIGHT 1.65f
 vec3 sky_color = {0.4f, 0.5f, 1.0f};
 
@@ -37,6 +37,8 @@ static void setup()
     global_block_view_loc = glGetUniformLocation(global_block_shader, "u_View");
     global_block_projection_loc = glGetUniformLocation(global_block_shader, "u_Projection");
     global_block_texture_loc = glGetUniformLocation(global_block_shader, "u_Texture");
+    global_block_view_near_loc = glGetUniformLocation(global_block_shader, "u_ViewNear");
+    global_block_view_far_loc = glGetUniformLocation(global_block_shader, "u_ViewFar");
 
     glm_vec3_zero(global_player_position);
     global_player_position[1] = 255.0f;
@@ -262,79 +264,26 @@ static void Render(void)
 
     // Collison Detection
     {
-        //char change_x_positive = 
-        char change_y_negative = (int)floorf(global_player_position[1] + movement[1]) - (int)floorf(global_player_position[1]);
+        char change_y = (int)floorf(global_player_position[1] + movement[1]) - (int)floorf(global_player_position[1]);
+
         char change_x_positive = (int)floorf(global_player_position[0] + movement[0] + PLAYER_SIZE) - (int)floorf(global_player_position[0] + PLAYER_SIZE);
-        char change_x_negative = (int)floorf(global_player_position[0] + movement[0] - PLAYER_SIZE) - (int)floorf(global_player_position[0] - PLAYER_SIZE);
         char change_z_positive = (int)floorf(global_player_position[2] + movement[2] + PLAYER_SIZE) - (int)floorf(global_player_position[2] + PLAYER_SIZE);
+        char change_x_negative = (int)floorf(global_player_position[0] + movement[0] - PLAYER_SIZE) - (int)floorf(global_player_position[0] - PLAYER_SIZE);
         char change_z_negative = (int)floorf(global_player_position[2] + movement[2] - PLAYER_SIZE) - (int)floorf(global_player_position[2] - PLAYER_SIZE);
+        char change_x = (change_x_positive > 0) ? change_x_positive : (change_x_negative < 0) ? change_x_negative : 0;
+        char change_z = (change_z_positive > 0) ? change_z_positive : (change_z_negative < 0) ? change_z_negative : 0;
 
-        int y_1 = (int)floorf(global_player_position[1]) + (int)floorf(fmodf(global_player_position[1], 1.0f) + 0.f);
-        int y_2 = (int)floorf(global_player_position[1]) + (int)floorf(fmodf(global_player_position[1], 1.0f) + 1.0f);
-        int y_3 = (int)floorf(global_player_position[1]) + (int)floorf(fmodf(global_player_position[1], 1.0f) + PLAYER_HEIGHT);
+        int y_1 = (int)floorf(global_player_position[1] + 0.f);
+        int y_2 = (int)floorf(global_player_position[1] + 1.0f);
+        int y_3 = (int)floorf(global_player_position[1] + PLAYER_HEIGHT);
 
-        if(change_x_positive > 0)
+        if(change_y < 0)
         {
             if(
-                (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_1, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_2, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_3, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_1, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_2, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_positive, y_3, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-                )
-            {
-                movement[0] = 0.f;
-            }
-        } else if (change_x_negative < 0)
-        {
-            if(
-                (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_1, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_2, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_3, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_1, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_2, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x_negative, y_3, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-                )
-            {
-                movement[0] = 0.f;
-            }
-        }
-        if(change_z_positive > 0)
-        {
-            if(
-                (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z_positive))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z_positive))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z_positive))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z_positive))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z_positive))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z_positive))->flags & BLOCKFLAG_NO_COLLISION) == 0
-                )
-            {
-                movement[2] = 0.f;
-            }
-        } else if (change_z_negative < 0)
-        {
-            if(
-                (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z_negative))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z_negative))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z_negative))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z_negative))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z_negative))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z_negative))->flags & BLOCKFLAG_NO_COLLISION) == 0
-                )
-            {
-                movement[2] = 0.f;
-            }
-        }
-
-        if(change_y_negative < 0)
-        {
-            if(
-                (get_block(get_block_id_at(floorf(global_player_position[0] - PLAYER_SIZE), y_1 + change_y_negative, floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at(floorf(global_player_position[0] + PLAYER_SIZE), y_1 + change_y_negative, floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at(floorf(global_player_position[0] + PLAYER_SIZE), y_1 + change_y_negative, floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at(floorf(global_player_position[0] - PLAYER_SIZE), y_1 + change_y_negative, floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                (get_block(get_block_id_at(floorf(global_player_position[0] - PLAYER_SIZE), y_1 + change_y, floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at(floorf(global_player_position[0] + PLAYER_SIZE), y_1 + change_y, floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at(floorf(global_player_position[0] + PLAYER_SIZE), y_1 + change_y, floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at(floorf(global_player_position[0] - PLAYER_SIZE), y_1 + change_y, floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
                 )
             {
                 movement[1] = 0.0f;
@@ -353,6 +302,89 @@ static void Render(void)
                     movement[1] = 0.0f;
                     velocity[1] = 0.0f;
                 }
+            }
+        }
+
+        int y_0 = (int)floorf(global_player_position[1] + movement[1]);
+
+        if(change_x && change_z)
+        {
+            if(
+                (get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_0, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_1, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_2, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_3, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                )
+            {
+                if(fabsf(movement[0]) > fabsf(movement[2]))
+                {
+                    if(
+                        !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_0, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                     && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_1, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                     && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_2, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                     && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_3, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                    )
+                    {
+                        movement[2] = 0;   
+                    }
+                }
+                else if(fabsf(movement[2]) > fabsf(movement[0]))
+                {
+                    if(
+                       !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_0, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                    && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_1, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                    && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_2, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                    && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_3, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                    )
+                    {
+                        movement[0] = 0;   
+                    }
+                }
+                else
+                {
+                    movement[0] = 0.f;
+                    movement[2] = 0.f;
+                }
+            }
+        }
+
+        change_x_positive = (int)floorf(global_player_position[0] + movement[0] + PLAYER_SIZE) - (int)floorf(global_player_position[0] + PLAYER_SIZE);
+        change_z_positive = (int)floorf(global_player_position[2] + movement[2] + PLAYER_SIZE) - (int)floorf(global_player_position[2] + PLAYER_SIZE);
+        change_x_negative = (int)floorf(global_player_position[0] + movement[0] - PLAYER_SIZE) - (int)floorf(global_player_position[0] - PLAYER_SIZE);
+        change_z_negative = (int)floorf(global_player_position[2] + movement[2] - PLAYER_SIZE) - (int)floorf(global_player_position[2] - PLAYER_SIZE);
+        change_x = (change_x_positive > 0) ? change_x_positive : (change_x_negative < 0) ? change_x_negative : 0;
+        change_z = (change_z_positive > 0) ? change_z_positive : (change_z_negative < 0) ? change_z_negative : 0;
+
+        if(change_x)
+        {
+            if(
+                (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_0, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_1, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_2, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_3, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_0, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_1, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_2, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_3, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                )
+            {
+                movement[0] = 0.f;
+            }
+        }
+        if(change_z)
+        {
+            if(
+                (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_0, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_0, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                )
+            {
+                movement[2] = 0.f;
             }
         }
     }

@@ -601,7 +601,7 @@ void generate_chunks()
 
 void render_chunks()
 {
-    glm_perspective(glm_rad(70.0f), (float)global_width / global_height, 0.1f, 700.0f, global_projection);
+    glm_perspective(glm_rad(global_camera_info.fFOVy), (float)global_width / global_height, global_camera_info.fNear, global_camera_info.fFar, global_projection);
     glm_mat4_identity(global_view);
     mat4 rotation;
     glm_euler_xyz(global_camera_rotation, rotation);
@@ -610,9 +610,11 @@ void render_chunks()
     glm_translate(global_view, (vec3){-global_camera_offset[0], -global_camera_offset[1], -global_camera_offset[2]});
 
     glUseProgram(global_block_shader);
-    bind_texture(global_texture, 0);
     glUniformMatrix4fv(global_block_view_loc, 1, GL_FALSE, global_view[0]);
     glUniformMatrix4fv(global_block_projection_loc, 1, GL_FALSE, global_projection[0]);
+    glUniform1f(global_block_view_near_loc, global_camera_info.fNear);
+    glUniform1f(global_block_view_far_loc, global_camera_info.fFar);
+    bind_texture(global_texture, 0);
     glUniform1i(global_block_texture_loc, 0);
 
     int x, y;
