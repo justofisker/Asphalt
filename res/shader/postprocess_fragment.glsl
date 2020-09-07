@@ -1,6 +1,7 @@
 #version 330 core
 
-uniform vec4 u_WaterColor = vec4(0.2, 0.25, 0.7, 1.0);
+uniform vec4 u_WaterColor = vec4(0.4, 0.4, 0.9, 1.0);
+uniform vec3 u_WaterFarColor = vec3(0.0, 0.0, 0.4);
 uniform sampler2D u_Color;
 uniform sampler2D u_Depth;
 uniform bool u_bInWater;
@@ -16,7 +17,7 @@ in vec2 UV;
 
 out vec4 color;
 
-uniform float u_ViewNear = 0.1;
+uniform float u_ViewNear = 0.05;
 uniform float u_ViewFar = 700.0;
 
 float linearDepth(float depthSample)
@@ -41,9 +42,9 @@ void main()
     {
         color = color * u_WaterColor;
         float water_fog_near = 5.0;
-        float water_fog_far = 500.0;
+        float water_fog_far = 300.0;
         float fog_amount = pow(1.0 - (min(max((DEPTH - water_fog_near) / (water_fog_far - water_fog_near), 0.0), 1.0)), 3);
-        color = vec4(color.rgb * vec3(fog_amount) + u_WaterColor.rgb * vec3(1 - fog_amount), 1.0);
+        color = vec4(color.rgb * vec3(fog_amount) + u_WaterFarColor * vec3(1 - fog_amount), 1.0);
 
     }
 
