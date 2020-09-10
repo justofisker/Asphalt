@@ -286,7 +286,7 @@ static void Render(void)
              || (get_block(get_block_id_at(floorf(global_player_position[0] - PLAYER_SIZE), y_1 + change_y, floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
                 )
             {
-                movement[1] = 0.0f;
+                movement[1] = (float)(y_1) - global_player_position[1];
                 velocity[1] = 0.0f;
                 on_ground = 1;
             } else on_ground = 0;       
@@ -299,7 +299,7 @@ static void Render(void)
                     (get_block(get_block_id_at(floorf(global_player_position[0]), floorf(global_player_position[1] + movement[1] + PLAYER_HEIGHT), floorf(global_player_position[2])))->flags & BLOCKFLAG_NO_COLLISION) == 0
                 )
                 {
-                    movement[1] = 0.0f;
+                    movement[1] = (float)(y_3 + 1) - (global_player_position[1] + PLAYER_HEIGHT);
                     velocity[1] = 0.0f;
                 }
             }
@@ -325,7 +325,7 @@ static void Render(void)
                      && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_3, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
                     )
                     {
-                        movement[2] = 0;   
+                        movement[2] = 0.f;   
                     }
                 }
                 else if(fabsf(movement[2]) > fabsf(movement[0]))
@@ -337,7 +337,7 @@ static void Render(void)
                     && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_3, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
                     )
                     {
-                        movement[0] = 0;   
+                        movement[0] = 0.f;  
                     }
                 }
                 else
