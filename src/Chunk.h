@@ -28,7 +28,7 @@ typedef struct _Chunk
 } Chunk;
 
 Chunk *create_chunk(int x, int y);
-void create_vertex_index_buffer(Chunk* chunk);
+void create_chunk_mesh(Chunk* chunk);
 void regenerate_chunk_mesh(Chunk *chunk);
 void render_chunk(Chunk *chunk, char transparent);
 void free_chunk(Chunk *chunk);

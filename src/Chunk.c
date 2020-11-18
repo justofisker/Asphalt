@@ -5,7 +5,7 @@
 #include "Globals.h"
 #include "Util.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -46,8 +46,8 @@ void set_chunk(int x, int y, Chunk* chunk)
         chunks_to_free[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)] = previous;
 }
 
-void _sleep(int ms){
-#ifdef WIN32
+inline void asphalt_sleep(int ms){
+#ifdef _WIN32
     Sleep(ms);
 #else
     if (ms >= 1000)
@@ -57,7 +57,7 @@ void _sleep(int ms){
 }
 
 
-#define WAIT_FOR_UNLOCK(chunk) while(chunk->locked) { _sleep(0);}
+#define WAIT_FOR_UNLOCK(chunk) while(chunk->locked) { asphalt_sleep(0);}
 
 #ifdef _WIN32
 HANDLE chunk_thread;
@@ -91,51 +91,58 @@ void* create_chunks(void* arg)
         dy = -1;
         int t = CHUNK_ARR_SIZE;
         int maxI = t*t;
-        for(int i =0; i < maxI; i++){
+        int i;
+        for(i = 0; i < maxI; i++){
+            int chunk_x = x + cur_x;
+            int chunk_y = y + cur_y;
             if ((-CHUNK_ARR_SIZE/2 <= x) && (x <= CHUNK_ARR_SIZE/2) && (-CHUNK_ARR_SIZE/2 <= y) && (y <= CHUNK_ARR_SIZE/2)){
-                if(!get_chunk(x + cur_x, y + cur_y))
+                if(!get_chunk(chunk_x, chunk_y))
                 {
-                    Chunk *chunk = create_chunk(x + cur_x, y + cur_y);
-                    create_vertex_index_buffer(chunk);
-                    chunk->create_mesh = 1;
-                    if(chunks[mod(x + cur_x, CHUNK_ARR_SIZE)][mod(y + cur_y, CHUNK_ARR_SIZE)]) WAIT_FOR_UNLOCK(chunks[mod(x + cur_x, CHUNK_ARR_SIZE)][mod(y + cur_y, CHUNK_ARR_SIZE)])
-                    set_chunk(x + cur_x, y + cur_y, chunk);
+                    Chunk *chunk = create_chunk(chunk_x, chunk_y);
+                    if(chunks[mod(chunk_x, CHUNK_ARR_SIZE)][mod(chunk_y, CHUNK_ARR_SIZE)]) WAIT_FOR_UNLOCK(chunks[mod(chunk_x, CHUNK_ARR_SIZE)][mod(chunk_y, CHUNK_ARR_SIZE)])
+                    set_chunk(chunk_x, chunk_y, chunk);
                     
-                    chunk = get_chunk(x + cur_x - 1, y + cur_y);
-                    if(chunk)
-                    {
-                        WAIT_FOR_UNLOCK(chunk)
-                        chunk->locked = 1;
-                        create_vertex_index_buffer(chunk);
-                        chunk->create_mesh = 1;
-                        chunk->locked = 0;
-                    }
-                    chunk = get_chunk(x + cur_x + 1, y + cur_y);
-                    if(chunk)
-                    {
-                        WAIT_FOR_UNLOCK(chunk)
-                        chunk->locked = 1;
-                        create_vertex_index_buffer(chunk);
-                        chunk->create_mesh = 1;
-                        chunk->locked = 0;
-                    }
-                    chunk = get_chunk(x + cur_x, y + cur_y - 1);
-                    if(chunk)
-                    {
-                        WAIT_FOR_UNLOCK(chunk)
-                        chunk->locked = 1;
-                        create_vertex_index_buffer(chunk);
-                        chunk->create_mesh = 1;
-                        chunk->locked = 0;
-                    }
-                    chunk = get_chunk(x + cur_x, y + cur_y + 1);
-                    if(chunk)
-                    {
-                        WAIT_FOR_UNLOCK(chunk)
-                        chunk->locked = 1;
-                        create_vertex_index_buffer(chunk);
-                        chunk->create_mesh = 1;
-                        chunk->locked = 0;
+                    if(1) {
+                        chunk = get_chunk(chunk_x - 1, chunk_y);
+                        if(chunk && !chunk->mesh
+                        && (get_chunk(chunk_x - 1 - 1, chunk_y    ))
+                        && (get_chunk(chunk_x - 1 + 1, chunk_y    ))
+                        && (get_chunk(chunk_x - 1,     chunk_y - 1))
+                        && (get_chunk(chunk_x - 1,     chunk_y + 1)))
+                        {
+                            create_chunk_mesh(chunk);
+                            chunk->create_mesh = 1;
+                        }
+                        chunk = get_chunk(chunk_x + 1, chunk_y);
+                        if(chunk && !chunk->mesh
+                        && (get_chunk(chunk_x + 1 - 1, chunk_y    ))
+                        && (get_chunk(chunk_x + 1 + 1, chunk_y    ))
+                        && (get_chunk(chunk_x + 1,     chunk_y - 1))
+                        && (get_chunk(chunk_x + 1,     chunk_y + 1)))
+                        {
+                            create_chunk_mesh(chunk);
+                            chunk->create_mesh = 1;
+                        }
+                        chunk = get_chunk(chunk_x, chunk_y - 1);
+                        if(chunk && !chunk->mesh
+                        && (get_chunk(chunk_x - 1, chunk_y - 1    ))
+                        && (get_chunk(chunk_x + 1, chunk_y - 1    ))
+                        && (get_chunk(chunk_x,     chunk_y - 1 - 1))
+                        && (get_chunk(chunk_x,     chunk_y - 1 + 1)))
+                        {
+                            create_chunk_mesh(chunk);
+                            chunk->create_mesh = 1;
+                        }
+                        chunk = get_chunk(chunk_x, chunk_y + 1);
+                        if(chunk && !chunk->mesh
+                        && (get_chunk(chunk_x - 1, chunk_y + 1    ))
+                        && (get_chunk(chunk_x + 1, chunk_y + 1    ))
+                        && (get_chunk(chunk_x,     chunk_y + 1 - 1))
+                        && (get_chunk(chunk_x,     chunk_y + 1 + 1)))
+                        {
+                            create_chunk_mesh(chunk);
+                            chunk->create_mesh = 1;
+                        }
                     }
 
 
@@ -165,11 +172,11 @@ void* create_chunks(void* arg)
         last_y = cur_y;
     }
 
-    _sleep(50);
+    asphalt_sleep(50);
 
     }
 
-    return NULL;
+    return 0;
 }
 
 Chunk *create_chunk(int _x, int _y)
@@ -213,7 +220,7 @@ Chunk *create_chunk(int _x, int _y)
     return chunk;
 }
 
-void create_vertex_index_buffer(Chunk* chunk)
+void create_chunk_mesh(Chunk* chunk)
 {
     if(chunk->solid_vertex_buffer)
         free(chunk->solid_vertex_buffer);
@@ -497,7 +504,7 @@ void create_mesh_from_chunk(Chunk *chunk)
     glBindVertexArray(chunk->mesh->array_object);
 
     glGenBuffers(1, &chunk->mesh->vertex_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, chunk->mesh->vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, chunk->mesh->vertex_buffer); 
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * chunk->solid_vertex_count, chunk->solid_vertex_buffer, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
@@ -552,7 +559,7 @@ void create_mesh_from_chunk(Chunk *chunk)
 
 void regenerate_chunk_mesh(Chunk *chunk)
 {
-    create_vertex_index_buffer(chunk);
+    create_chunk_mesh(chunk);
     create_mesh_from_chunk(chunk);
 }
 
