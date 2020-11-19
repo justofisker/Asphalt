@@ -27,10 +27,85 @@ unsigned int postprocess_shader;
 #define PLAYER_HEIGHT 1.65f
 vec3 sky_color = {0.4f, 0.5f, 1.0f};
 
+Mesh* look_block_mesh;
+static void setup_look_block()
+{
+    typedef struct _Vertex
+    {
+        vec3 position;
+    } Vertex;
+
+    typedef unsigned short Index;
+
+    Vertex verticies[8] = {
+        { 1.001f,  1.001f, -0.001f},
+        { 1.001f, -0.001f, -0.001f},
+        {-0.001f, -0.001f, -0.001f},
+        {-0.001f,  1.001f, -0.001f},
+        { 1.001f,  1.001f,  1.001f},
+        { 1.001f, -0.001f,  1.001f},
+        {-0.001f, -0.001f,  1.001f},
+        {-0.001f,  1.001f,  1.001f},
+    };
+
+    Index indicies[36] = {
+        2, 1, 0,
+        0, 3, 2,
+        1, 5, 4,
+        4, 0, 1,
+        4, 5, 6,
+        6, 7, 4,
+        7, 6, 2,
+        2, 3, 7,
+        6, 5, 1,
+        1, 2, 6,
+        0, 4, 7,
+        7, 3, 0,
+    };
+
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+    unsigned int VB, IB;
+    glGenBuffers(1, &VB);
+    glBindBuffer(GL_ARRAY_BUFFER, VB);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verticies), verticies, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+    glGenBuffers(1, &IB);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_STATIC_DRAW);
+    glBindVertexArray(0);
+
+    Mesh* mesh = malloc(sizeof(Mesh));
+    mesh->array_object = VAO;
+    mesh->vertex_buffer = VB;
+    mesh->index_buffer = IB;
+    mesh->index_count = 36;
+    mesh->index_type = GL_UNSIGNED_SHORT;
+
+    look_block_mesh = mesh;
+}
+static void render_look_block(int x, int y, int z)
+{
+    mat4 model = GLM_MAT4_IDENTITY_INIT;
+    glm_translate(model, (vec3){x, y, z});
+    glUseProgram(global_color_shader);
+    glUniformMatrix4fv(global_color_model_loc, 1, GL_FALSE, model[0]);
+    glUniformMatrix4fv(global_color_view_loc, 1, GL_FALSE, global_view[0]);
+    glUniformMatrix4fv(global_color_projection_loc, 1, GL_FALSE, global_projection[0]);
+    glUniform4f(global_color_color_loc, 0.0f, 0.0f, 0.0f, 1.0f);
+    glBindVertexArray(look_block_mesh->array_object);
+    glLineWidth(1.5f);
+    glDrawElements(GL_LINES, look_block_mesh->index_count, look_block_mesh->index_type, (void*)0);
+    glBindVertexArray(0);
+}
+
 static void setup()
 {
     global_block_shader = compile_shader("res/shader/block_vertex.glsl", "res/shader/block_fragment.glsl");
     postprocess_shader = compile_shader("res/shader/postprocess_vertex.glsl", "res/shader/postprocess_fragment.glsl");
+    global_color_shader = compile_shader("res/shader/color_vertex.glsl", "res/shader/color_fragment.glsl");
     global_texture = create_texture("res/texture/blocks.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, 0, 0.0f);
 
     global_block_model_loc = glGetUniformLocation(global_block_shader, "u_Model");
@@ -39,6 +114,10 @@ static void setup()
     global_block_texture_loc = glGetUniformLocation(global_block_shader, "u_Texture");
     global_block_view_near_loc = glGetUniformLocation(global_block_shader, "u_ViewNear");
     global_block_view_far_loc = glGetUniformLocation(global_block_shader, "u_ViewFar");
+    global_color_model_loc = glGetUniformLocation(global_color_shader, "u_Model");
+    global_color_view_loc = glGetUniformLocation(global_color_shader, "u_View");
+    global_color_projection_loc = glGetUniformLocation(global_color_shader, "u_Projection");
+    global_color_color_loc = glGetUniformLocation(global_color_shader, "u_Color");
 
     glm_vec3_zero(global_player_position);
     global_player_position[1] = 255.0f;
@@ -61,7 +140,8 @@ static void setup()
     setup_input();
     setup_postprocess();
     set_mouse_mode(MOUSEMODE_CAPTURED);
-    generate_chunks();
+    setup_chunk_thread();
+    setup_look_block();
 }
 
 static void Resize(int w, int h)
@@ -162,13 +242,15 @@ static void Render(void)
 
 
 
-    if(on_ground)
-        fly_mode = 0;
+    // movement
+    if(1) {
+        if(on_ground)
+            fly_mode = 0;
 
-    if(fly_mode)
-        glm_vec3_zero(velocity);
+        if(fly_mode)
+            glm_vec3_zero(velocity);
 
-    if(!fly_mode)
+        if(!fly_mode)
     {
         vec3 direction = {0, 0, 0};
         float speed = 0.0f;
@@ -226,44 +308,45 @@ static void Render(void)
         glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
         glm_vec3_add(movement, direction, movement);
     }
-    else
-    {
-        float speed = 150.f;
-        vec3 direction = {0, 0, 0};
-        // Fly
-        if(!paused) {
-            if(is_key_pressed('a'))
-                direction[0] -= 1.0f;
-            if(is_key_pressed('d'))
-                direction[0] += 1.0f;
-            if(is_key_pressed('w'))
-                direction[2] -= 1.0f;
-            if(is_key_pressed('s'))
-                direction[2] += 1.0f;
-            if(is_key_pressed(' '))
-                velocity[1] = 10.0f;
+        else
+        {
+            float speed = 150.f;
+            vec3 direction = {0, 0, 0};
+            // Fly
+            if(!paused) {
+                if(is_key_pressed('a'))
+                    direction[0] -= 1.0f;
+                if(is_key_pressed('d'))
+                    direction[0] += 1.0f;
+                if(is_key_pressed('w'))
+                    direction[2] -= 1.0f;
+                if(is_key_pressed('s'))
+                    direction[2] += 1.0f;
+                if(is_key_pressed(' '))
+                    velocity[1] = 10.0f;
 #ifdef _WIN32
-            if(GetKeyState(VK_SHIFT) & 0x8000)
+                if(GetKeyState(VK_SHIFT) & 0x8000)
 #else
-            if(is_key_pressed('c'))
+                if(is_key_pressed('c'))
 #endif
-                velocity[1] = -10.0f;
+                    velocity[1] = -10.0f;
+            }
+            if(sprint_mode)
+                speed *= 1.65f;
+            glm_normalize(direction);
+            glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
+            glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
+            glm_vec3_add(movement, direction, movement);
         }
-        if(sprint_mode)
-            speed *= 1.65f;
-        glm_normalize(direction);
-        glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
-        glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
-        glm_vec3_add(movement, direction, movement);
+    
+        vec3 velocity_movement;
+        glm_vec3_copy(velocity, velocity_movement);
+        glm_vec3_mul(velocity_movement, (vec3){delta, delta, delta}, velocity_movement);
+        glm_vec3_add(movement, velocity_movement, movement);
     }
 
-    vec3 velocity_movement;
-    glm_vec3_copy(velocity, velocity_movement);
-    glm_vec3_mul(velocity_movement, (vec3){delta, delta, delta}, velocity_movement);
-    glm_vec3_add(movement, velocity_movement, movement);
-
     // Collison Detection
-    {
+    if(1){
         char change_y = (int)floorf(global_player_position[1] + movement[1]) - (int)floorf(global_player_position[1]);
 
         char change_x_positive = (int)floorf(global_player_position[0] + movement[0] + PLAYER_SIZE) - (int)floorf(global_player_position[0] + PLAYER_SIZE);
@@ -400,8 +483,11 @@ static void Render(void)
         time_passed -= 1.0f;
     }
 
-    // Raycast
-    if(!paused && is_mouse_button_just_pressed(GLUT_LEFT_BUTTON)){
+    char looking_at_block = 0;
+    int look_block_pos[3];
+
+    // Block Break Raycast
+    if(1){
         float ray_inc = 0.05f;
         float max_distance = 10.0f;
 
@@ -424,11 +510,19 @@ static void Render(void)
                 vec3 position;
                 glm_vec3_add(target, origin, position);
 
-                char found_block = !(get_block(get_block_id_at(floorf(position[0]), floorf(position[1]), floorf(position[2])))->flags & BLOCKFLAG_NO_COLLISION);
+                int block_pos[3] = {floorf(position[0]), floorf(position[1]), floorf(position[2])};
 
-                if(found_block)
-                {
-                    set_block_at(floorf(position[0]), floorf(position[1]), floorf(position[2]), 0);
+                char found_block = !(get_block(get_block_id_at(block_pos[0], block_pos[1], block_pos[2]))->flags & BLOCKFLAG_NO_COLLISION);
+
+                if(found_block) {
+                    looking_at_block = 1;
+                    memcpy_s(look_block_pos, sizeof(look_block_pos), block_pos, sizeof(block_pos));
+
+                    if(!paused && is_mouse_button_just_pressed(GLUT_LEFT_BUTTON))
+                    {
+                        set_block_at(block_pos[0], block_pos[1], block_pos[2], 0);
+                    }
+
                     break;
                 }
             }
@@ -497,6 +591,8 @@ static void Render(void)
     glClearColor(sky_color[0], sky_color[1], sky_color[2], 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     render_chunks();
+    // Render Look Block
+    if(looking_at_block) render_look_block(look_block_pos[0], look_block_pos[1], look_block_pos[2]);
     render_end_postprocess();
     glUseProgram(postprocess_shader);
     int u_bInWater = glGetUniformLocation(postprocess_shader, "u_bInWater");

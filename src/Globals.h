@@ -29,6 +29,11 @@ extern int global_block_texture_loc;
 extern int global_block_view_near_loc;
 extern int global_block_view_far_loc;
 extern unsigned int global_block_shader;
+extern int global_color_model_loc;
+extern int global_color_view_loc;
+extern int global_color_projection_loc;
+extern int global_color_color_loc;
+extern unsigned int global_color_shader;
 extern Texture *global_texture;
 
 extern int global_height;
