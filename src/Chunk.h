@@ -3,6 +3,7 @@
 
 #define CHUNK_SIZE_XZ 16
 #define CHUNK_SIZE_Y 256
+#define CHUNK_VIEW_DISTANCE 32
 
 typedef struct _Vertex Vertex;
 
@@ -28,13 +29,13 @@ typedef struct _Chunk
 } Chunk;
 
 Chunk *create_chunk(int x, int y);
-void create_chunk_mesh(Chunk* chunk);
 void regenerate_chunk_mesh(Chunk *chunk);
+void populate_chunk_mesh_buffers(Chunk *chunk);
 void render_chunk(Chunk *chunk, char transparent);
 void free_chunk(Chunk *chunk);
 
 Chunk *get_chunk(int x, int y);
-void generate_chunks();
+void setup_chunk_thread();
 void render_chunks();
 short get_block_id_at(int x, int y, int z);
 void set_block_at(int x, int y, int z, short block);

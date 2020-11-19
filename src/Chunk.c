@@ -31,7 +31,7 @@ typedef unsigned int Index;
 #define TEX_CELL_COUNT_XY 8
 #define TEX_CELL_SIZE_XY (1.0f / (float)TEX_CELL_COUNT_XY)
 
-#define CHUNK_ARR_SIZE 64
+#define CHUNK_ARR_SIZE CHUNK_VIEW_DISTANCE * 2 + 2
 Chunk *chunks[CHUNK_ARR_SIZE][CHUNK_ARR_SIZE];
 Chunk *chunks_to_free[CHUNK_ARR_SIZE][CHUNK_ARR_SIZE];
 int last_x = 0;
@@ -57,19 +57,33 @@ inline void asphalt_sleep(int ms){
 }
 
 
-#define WAIT_FOR_UNLOCK(chunk) while(chunk->locked) { asphalt_sleep(0);}
+#define WAIT_FOR_UNLOCK(chunk) while(chunk->locked) { asphalt_sleep(0); }
+
+static inline void fill_surounding_chunk(x, y)
+{
+    Chunk* chunk = get_chunk(x, y); 
+    if(chunk && !chunk->mesh 
+        && (get_chunk(x - 1, y    )) 
+        && (get_chunk(x + 1, y    )) 
+        && (get_chunk(x,     y - 1)) 
+        && (get_chunk(x,     y + 1))) 
+    { 
+        populate_chunk_mesh_buffers(chunk); 
+        chunk->create_mesh = 1; 
+    }
+}
 
 #ifdef _WIN32
 HANDLE chunk_thread;
 DWORD chunk_thread_id;
 
-DWORD WINAPI create_chunks(LPVOID lpParam)
+DWORD WINAPI async_generate_chunks(LPVOID lpParam)
 #elif __linux__
 #include <pthread.h>
 
 pthread_t generation_thread;
 
-void* create_chunks(void* arg)
+void* async_generate_chunks(void* arg)
 #endif
 {
     srand(time(0));
@@ -102,48 +116,10 @@ void* create_chunks(void* arg)
                     if(chunks[mod(chunk_x, CHUNK_ARR_SIZE)][mod(chunk_y, CHUNK_ARR_SIZE)]) WAIT_FOR_UNLOCK(chunks[mod(chunk_x, CHUNK_ARR_SIZE)][mod(chunk_y, CHUNK_ARR_SIZE)])
                     set_chunk(chunk_x, chunk_y, chunk);
                     
-                    if(1) {
-                        chunk = get_chunk(chunk_x - 1, chunk_y);
-                        if(chunk && !chunk->mesh
-                        && (get_chunk(chunk_x - 1 - 1, chunk_y    ))
-                        && (get_chunk(chunk_x - 1 + 1, chunk_y    ))
-                        && (get_chunk(chunk_x - 1,     chunk_y - 1))
-                        && (get_chunk(chunk_x - 1,     chunk_y + 1)))
-                        {
-                            create_chunk_mesh(chunk);
-                            chunk->create_mesh = 1;
-                        }
-                        chunk = get_chunk(chunk_x + 1, chunk_y);
-                        if(chunk && !chunk->mesh
-                        && (get_chunk(chunk_x + 1 - 1, chunk_y    ))
-                        && (get_chunk(chunk_x + 1 + 1, chunk_y    ))
-                        && (get_chunk(chunk_x + 1,     chunk_y - 1))
-                        && (get_chunk(chunk_x + 1,     chunk_y + 1)))
-                        {
-                            create_chunk_mesh(chunk);
-                            chunk->create_mesh = 1;
-                        }
-                        chunk = get_chunk(chunk_x, chunk_y - 1);
-                        if(chunk && !chunk->mesh
-                        && (get_chunk(chunk_x - 1, chunk_y - 1    ))
-                        && (get_chunk(chunk_x + 1, chunk_y - 1    ))
-                        && (get_chunk(chunk_x,     chunk_y - 1 - 1))
-                        && (get_chunk(chunk_x,     chunk_y - 1 + 1)))
-                        {
-                            create_chunk_mesh(chunk);
-                            chunk->create_mesh = 1;
-                        }
-                        chunk = get_chunk(chunk_x, chunk_y + 1);
-                        if(chunk && !chunk->mesh
-                        && (get_chunk(chunk_x - 1, chunk_y + 1    ))
-                        && (get_chunk(chunk_x + 1, chunk_y + 1    ))
-                        && (get_chunk(chunk_x,     chunk_y + 1 - 1))
-                        && (get_chunk(chunk_x,     chunk_y + 1 + 1)))
-                        {
-                            create_chunk_mesh(chunk);
-                            chunk->create_mesh = 1;
-                        }
-                    }
+                    fill_surounding_chunk(chunk_x - 1, chunk_y);
+                    fill_surounding_chunk(chunk_x + 1, chunk_y);
+                    fill_surounding_chunk(chunk_x, chunk_y - 1);
+                    fill_surounding_chunk(chunk_x, chunk_y + 1);
 
 
                     if (cur_x != (int)(global_player_position[0]) / CHUNK_SIZE_XZ
@@ -220,7 +196,7 @@ Chunk *create_chunk(int _x, int _y)
     return chunk;
 }
 
-void create_chunk_mesh(Chunk* chunk)
+void populate_chunk_mesh_buffers(Chunk *chunk)
 {
     if(chunk->solid_vertex_buffer)
         free(chunk->solid_vertex_buffer);
@@ -488,7 +464,7 @@ void create_chunk_mesh(Chunk* chunk)
     
 }
 
-void create_mesh_from_chunk(Chunk *chunk)
+void push_chunk_mesh_buffers(Chunk *chunk)
 {
     if(chunk->mesh) free_mesh(chunk->mesh);
     if(chunk->transparent_mesh) free_mesh(chunk->transparent_mesh);
@@ -559,21 +535,8 @@ void create_mesh_from_chunk(Chunk *chunk)
 
 void regenerate_chunk_mesh(Chunk *chunk)
 {
-    create_chunk_mesh(chunk);
-    create_mesh_from_chunk(chunk);
-}
-
-void render_chunk(Chunk *chunk, char transparent)
-{
-
-    mat4 model = GLM_MAT4_IDENTITY_INIT;
-    glm_translate(model, (vec3){chunk->x * CHUNK_SIZE_XZ, 0.0f, chunk->y * CHUNK_SIZE_XZ});
-
-    glUniformMatrix4fv(global_block_model_loc, 1, GL_FALSE, model[0]);
-    glBindVertexArray((transparent ? chunk->transparent_mesh : chunk->mesh)->array_object);
-    glDrawElements(GL_TRIANGLES, (transparent ? chunk->transparent_mesh : chunk->mesh)->index_count, (transparent ? chunk->transparent_mesh : chunk->mesh)->index_type, (void*)0);
-
-    glBindVertexArray(0);
+    populate_chunk_mesh_buffers(chunk);
+    push_chunk_mesh_buffers(chunk);
 }
 
 void free_chunk(Chunk *chunk)
@@ -587,22 +550,14 @@ void free_chunk(Chunk *chunk)
     free(chunk);
 }
 
-Chunk *get_chunk(int x, int y)
-{
-    Chunk* chunk = chunks[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)];
-    if(chunk && chunk->x == x && chunk->y == y)
-        return chunk;
-    return 0;
-}
-
-void generate_chunks()
+void setup_chunk_thread()
 {
     memset(chunks, 0, sizeof(chunks));
     memset(chunks_to_free, 0, sizeof(chunks_to_free));
 #ifdef _WIN32
-    chunk_thread = CreateThread(NULL, 0, create_chunks, NULL, 0, &chunk_thread_id);
+    chunk_thread = CreateThread(NULL, 0, async_generate_chunks, NULL, 0, &chunk_thread_id);
 #elif __linux__
-    pthread_create(&generation_thread, NULL, create_chunks, NULL);
+    pthread_create(&generation_thread, NULL, async_generate_chunks, NULL);
 #endif
 }
 
@@ -645,7 +600,7 @@ void render_chunks()
             if(chunk && chunk->create_mesh && !chunk->locked)
             {
                 chunk->locked = 1;
-                create_mesh_from_chunk(chunk);
+                push_chunk_mesh_buffers(chunk);
                 chunks[x][y]->locked = 0;
             }
         }
@@ -679,6 +634,18 @@ void render_chunks()
         }
     }
     glEnable(GL_CULL_FACE);
+}
+
+void render_chunk(Chunk *chunk, char transparent)
+{
+    mat4 model = GLM_MAT4_IDENTITY_INIT;
+    glm_translate(model, (vec3){chunk->x * CHUNK_SIZE_XZ, 0.0f, chunk->y * CHUNK_SIZE_XZ});
+
+    glUniformMatrix4fv(global_block_model_loc, 1, GL_FALSE, model[0]);
+    glBindVertexArray((transparent ? chunk->transparent_mesh : chunk->mesh)->array_object);
+    glDrawElements(GL_TRIANGLES, (transparent ? chunk->transparent_mesh : chunk->mesh)->index_count, (transparent ? chunk->transparent_mesh : chunk->mesh)->index_type, (void*)0);
+
+    glBindVertexArray(0);
 }
 
 short get_block_id_at(int x, int y, int z)
@@ -731,4 +698,12 @@ void set_block_at(int x, int y, int z, short block)
                 regenerate_chunk_mesh(chunk);
         }
     }
+}
+
+Chunk *get_chunk(int x, int y)
+{
+    Chunk* chunk = chunks[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)];
+    if(chunk && chunk->x == x && chunk->y == y)
+        return chunk;
+    return 0;
 }
