@@ -580,6 +580,11 @@ static void Render(void)
         }
     }
 
+    if(is_mouse_button_just_pressed(GLUT_MIDDLE_BUTTON))
+    {
+        block_selected = get_block_id_at(look_block_pos[0], look_block_pos[1], look_block_pos[2]);
+    }
+
     render_start_postprocess();
     render_begin();
     {

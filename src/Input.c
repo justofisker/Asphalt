@@ -10,8 +10,8 @@ char key_states[256];
 char frame_key_states[256];
 char special_states[256];
 char frame_special_states[256];
-char mouse_button_states[2];
-char frame_mouse_button_states[2];
+char mouse_button_states[3];
+char frame_mouse_button_states[3];
 int mouse_position[2];
 int mouse_motion[2];
 char mouse_wheel_direction = 0;
@@ -67,15 +67,10 @@ void mouse_func(int button, int state, int x, int y)
 {
     if(state == GLUT_DOWN)
     {
-        if(button == GLUT_LEFT_BUTTON)
+        if(button >= GLUT_LEFT_BUTTON || button <= GLUT_RIGHT_BUTTON)
         {
-                  mouse_button_states[0] = 1;
-            frame_mouse_button_states[0] = 1;
-        }
-        if(button == GLUT_RIGHT_BUTTON)
-        {
-                  mouse_button_states[1] = 1;
-            frame_mouse_button_states[1] = 1;
+                  mouse_button_states[button] = 1;
+            frame_mouse_button_states[button] = 1;
         }
         if(button == 3 || button == 4)
         {
@@ -140,13 +135,15 @@ char is_special_just_pressed(int key)
 int is_mouse_button_pressed(int button)
 {
     if(!in_game) return 0;
-    return button == GLUT_LEFT_BUTTON ? mouse_button_states[0] : button == GLUT_RIGHT_BUTTON ? mouse_button_states[1] : 0;
+    if(button < 0 && button > 2) return 0;
+    return mouse_button_states[button];
 }
 
 int is_mouse_button_just_pressed(int button)
 {
     if(!in_game) return 0;
-    return button == GLUT_LEFT_BUTTON ? frame_mouse_button_states[0] : button == GLUT_RIGHT_BUTTON ? frame_mouse_button_states[1] : 0;
+    if(button < 0 && button > 2) return 0;
+    return frame_mouse_button_states[button];
 }
 
 void get_mouse_motion(int *x, int *y)
