@@ -91,7 +91,7 @@ static void setup_look_block()
 static void render_look_block(int x, int y, int z)
 {
     mat4 model = GLM_MAT4_IDENTITY_INIT;
-    glm_translate(model, (vec3){x, y, z});
+    glm_translate(model, (vec3){x  - global_player_position[0], y - global_player_position[1], z - global_player_position[2]});
     glUseProgram(global_color_shader);
     glUniformMatrix4fv(global_color_model_loc, 1, GL_FALSE, model[0]);
     glUniformMatrix4fv(global_color_view_loc, 1, GL_FALSE, global_view[0]);

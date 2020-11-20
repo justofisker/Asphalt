@@ -631,7 +631,7 @@ void render_chunks()
 void render_chunk(Chunk *chunk, char transparent)
 {
     mat4 model = GLM_MAT4_IDENTITY_INIT;
-    glm_translate(model, (vec3){chunk->x * CHUNK_SIZE_XZ, 0.0f, chunk->y * CHUNK_SIZE_XZ});
+    glm_translate(model, (vec3){chunk->x * CHUNK_SIZE_XZ - global_player_position[0], 0.0f - global_player_position[1], chunk->y * CHUNK_SIZE_XZ - global_player_position[2]});
 
     glUniformMatrix4fv(global_block_model_loc, 1, GL_FALSE, model[0]);
     glBindVertexArray((transparent ? chunk->transparent_mesh : chunk->mesh)->array_object);

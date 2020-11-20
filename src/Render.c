@@ -14,7 +14,6 @@ void render_begin()
     mat4 rotation;
     glm_euler_xyz(global_camera_rotation, rotation);
     glm_mul_rot(global_view, rotation, global_view);
-    glm_translate(global_view, (vec3){-global_player_position[0], -global_player_position[1], -global_player_position[2]});
     glm_translate(global_view, (vec3){-global_camera_offset[0], -global_camera_offset[1], -global_camera_offset[2]});
 }
 
