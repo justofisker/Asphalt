@@ -22,6 +22,7 @@ add_executable(Asphalt
     "src/Sprite.c"
     "src/Input.c"
     "src/PostProcess.c"
+    "src/Render.c"
     "thirdparty/glad/src/glad.c"
     "${APP_ICON_RESOURCE_WINDOWS}"
     )

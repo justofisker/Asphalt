@@ -20,6 +20,7 @@
 #include "Block.h"
 #include "Input.h"
 #include "PostProcess.h"
+#include "Render.h"
 
 static char paused = 0;
 unsigned int postprocess_shader;
@@ -38,14 +39,14 @@ static void setup_look_block()
     typedef unsigned short Index;
 
     Vertex verticies[8] = {
-        { 1.001f,  1.001f, -0.001f},
-        { 1.001f, -0.001f, -0.001f},
-        {-0.001f, -0.001f, -0.001f},
-        {-0.001f,  1.001f, -0.001f},
-        { 1.001f,  1.001f,  1.001f},
-        { 1.001f, -0.001f,  1.001f},
-        {-0.001f, -0.001f,  1.001f},
-        {-0.001f,  1.001f,  1.001f},
+        { 1.0f,  1.0f, -0.0f},
+        { 1.0f, -0.0f, -0.0f},
+        {-0.0f, -0.0f, -0.0f},
+        {-0.0f,  1.0f, -0.0f},
+        { 1.0f,  1.0f,  1.0f},
+        { 1.0f, -0.0f,  1.0f},
+        {-0.0f, -0.0f,  1.0f},
+        {-0.0f,  1.0f,  1.0f},
     };
 
     Index indicies[36] = {
@@ -172,8 +173,6 @@ char fullscreen = 0;
 static void Render(void)
 {
     input_render_start();
-    glClearColor(sky_color[0], sky_color[1], sky_color[2], 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     clock_t time = clock();
     float delta = ((float) (time - global_last_frame)) / CLOCKS_PER_SEC;
@@ -474,15 +473,6 @@ static void Render(void)
     
     glm_vec3_add(global_player_position, movement, global_player_position);
     
-
-    frames++;
-    if(time_passed >= 1.0f)
-    {
-        printf("fps: %d\n", frames);
-        frames = 0;
-        time_passed -= 1.0f;
-    }
-
     char looking_at_block = 0;
     int look_block_pos[3];
 
@@ -588,43 +578,26 @@ static void Render(void)
     }
 
     render_start_postprocess();
-    glClearColor(sky_color[0], sky_color[1], sky_color[2], 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    render_chunks();
-    // Render Look Block
-    if(looking_at_block) render_look_block(look_block_pos[0], look_block_pos[1], look_block_pos[2]);
-    render_end_postprocess();
-    glUseProgram(postprocess_shader);
-    int u_bInWater = glGetUniformLocation(postprocess_shader, "u_bInWater");
-    glUniform1i (u_bInWater, (get_block_id_at(floorf(global_player_position[0]), floorf(global_player_position[1] + global_camera_offset[1]), floorf(global_player_position[2])) == BLOCK_WATER) );
-    int u_ScreenHeight = glGetUniformLocation(postprocess_shader, "u_ScreenHeight");
-    glUniform1i(u_ScreenHeight, global_height);
-    int u_ScreenWidth = glGetUniformLocation(postprocess_shader, "u_ScreenWidth");
-    glUniform1i(u_ScreenWidth, global_width);
-    int u_SkyColor = glGetUniformLocation(postprocess_shader, "u_SkyColor");
-    glUniform3fv(u_SkyColor, 1, sky_color);
-    do_postprocess(postprocess_shader, 0, 1);
-
-    input_render_end();
-
-    GLenum error = glGetError();
-    while(error != GL_NO_ERROR)
+    render_begin();
     {
-        char *error_name;
-        switch(error) {
-            case GL_INVALID_OPERATION:              error_name="INVALID_OPERATION";              break;
-            case GL_INVALID_ENUM:                   error_name="INVALID_ENUM";                   break;
-            case GL_INVALID_VALUE:                  error_name="INVALID_VALUE";                  break;
-            case GL_OUT_OF_MEMORY:                  error_name="OUT_OF_MEMORY";                  break;
-            case GL_INVALID_FRAMEBUFFER_OPERATION:  error_name="INVALID_FRAMEBUFFER_OPERATION";  break;
-            default:                                error_name="UNKNOWN ERROR";                  break;
-        }
-        printf("OpenGL Error: %s!\n", error_name);
-        error = glGetError();
-    }
+        if(looking_at_block) render_look_block(look_block_pos[0], look_block_pos[1], look_block_pos[2]);
+        render_chunks();
+        render_end_postprocess();
+        glUseProgram(postprocess_shader);
+        int u_bInWater = glGetUniformLocation(postprocess_shader, "u_bInWater");
+        glUniform1i (u_bInWater, (get_block_id_at(floorf(global_player_position[0]), floorf(global_player_position[1] + global_camera_offset[1]), floorf(global_player_position[2])) == BLOCK_WATER) );
+        int u_ScreenHeight = glGetUniformLocation(postprocess_shader, "u_ScreenHeight");
+        glUniform1i(u_ScreenHeight, global_height);
+        int u_ScreenWidth = glGetUniformLocation(postprocess_shader, "u_ScreenWidth");
+        glUniform1i(u_ScreenWidth, global_width);
+        int u_SkyColor = glGetUniformLocation(postprocess_shader, "u_SkyColor");
+        glUniform3fv(u_SkyColor, 1, sky_color);
+        do_postprocess(postprocess_shader, 0, 1);
+        glDisable(GL_DEPTH_TEST);
 
-    glutSwapBuffers();
-    glutPostRedisplay();
+        input_render_end();
+    }
+    render_end();
 }
 
 int main(int argc, char **argv)

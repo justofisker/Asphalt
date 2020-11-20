@@ -563,14 +563,6 @@ void setup_chunk_thread()
 
 void render_chunks()
 {
-    glm_perspective(glm_rad(global_camera_info.fFOVy), (float)global_width / global_height, global_camera_info.fNear, global_camera_info.fFar, global_projection);
-    glm_mat4_identity(global_view);
-    mat4 rotation;
-    glm_euler_xyz(global_camera_rotation, rotation);
-    glm_mul_rot(global_view, rotation, global_view);
-    glm_translate(global_view, (vec3){-global_player_position[0], -global_player_position[1], -global_player_position[2]});
-    glm_translate(global_view, (vec3){-global_camera_offset[0], -global_camera_offset[1], -global_camera_offset[2]});
-
     glUseProgram(global_block_shader);
     glUniformMatrix4fv(global_block_view_loc, 1, GL_FALSE, global_view[0]);
     glUniformMatrix4fv(global_block_projection_loc, 1, GL_FALSE, global_projection[0]);
