@@ -7,3 +7,6 @@
 [submodule "thirdparty/stb/stb"]
 	path = thirdparty/stb/stb
 	url = https://github.com/nothings/stb
+[submodule "thirdparty/freetype2"]
+	path = thirdparty/freetype2
+	url = https://github.com/justofisker/freetype2.git

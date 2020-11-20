@@ -22,6 +22,7 @@ add_executable(Asphalt
     "src/Sprite.c"
     "src/Input.c"
     "src/PostProcess.c"
+    "src/TextRenderer.c"
     "src/Render.c"
     "thirdparty/glad/src/glad.c"
     "${APP_ICON_RESOURCE_WINDOWS}"
@@ -30,6 +31,10 @@ add_executable(Asphalt
 add_subdirectory("thirdparty/freeGLUT/freeglut/freeglut")
 
 target_link_libraries(Asphalt freeglut_static)
+
+add_subdirectory("thirdparty/freetype2")
+
+target_link_libraries(Asphalt freetype)
 
 if (UNIX)
     target_link_libraries(Asphalt dl)
@@ -47,4 +52,5 @@ target_include_directories(Asphalt PUBLIC
     "thirdparty/freeGLUT/freeglut/freeglut/include"
     "thirdparty/glad/include"
     "thirdparty/stb"
+    "thirdparty/freetype2/include"
     )

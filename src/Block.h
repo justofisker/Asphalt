@@ -7,6 +7,7 @@
 #define BLOCK_STONE 3
 #define BLOCK_WATER 4
 #define BLOCK_SAND  5
+#define BLOCK_COUNT 6
 
 typedef enum _BlockSide
 {
@@ -30,6 +31,7 @@ typedef struct _Block
 {
     unsigned int tex_pos[6][2];
     int flags;
+    char *name;
 } Block;
 
 

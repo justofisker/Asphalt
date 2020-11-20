@@ -20,6 +20,7 @@
 #include "Block.h"
 #include "Input.h"
 #include "PostProcess.h"
+#include "TextRenderer.h"
 #include "Render.h"
 
 static char paused = 0;
@@ -102,6 +103,8 @@ static void render_look_block(int x, int y, int z)
     glBindVertexArray(0);
 }
 
+static Font *font_arial;
+
 static void setup()
 {
     global_block_shader = compile_shader("res/shader/block_vertex.glsl", "res/shader/block_fragment.glsl");
@@ -143,6 +146,10 @@ static void setup()
     set_mouse_mode(MOUSEMODE_CAPTURED);
     setup_chunk_thread();
     setup_look_block();
+    setup_textrenderer();
+    begin_create_font();
+    font_arial = create_font("res/fonts/Arial.ttf", 24);
+    end_create_font();
 }
 
 static void Resize(int w, int h)
@@ -160,6 +167,7 @@ static void Resize(int w, int h)
 
 float time_passed = 0.0f;
 int frames = 0;
+int fps = 0;
 float time_since_space = 1.f;
 float time_since_forward = 1.f;
 char sprint_mode = 0;
@@ -472,9 +480,12 @@ static void Render(void)
     }
     
     glm_vec3_add(global_player_position, movement, global_player_position);
-    
+
     char looking_at_block = 0;
     int look_block_pos[3];
+
+    block_selected += get_mouse_wheel_direction();
+    block_selected = mod(block_selected - 1, BLOCK_COUNT - 1) + 1;
 
     // Block Break Raycast
     if(1){
@@ -519,14 +530,6 @@ static void Render(void)
         }
     }
 
-    if(is_key_just_pressed('1'))
-        block_selected = BLOCK_GRASS;
-    if(is_key_just_pressed('2'))
-        block_selected = BLOCK_DIRT;
-    if(is_key_just_pressed('3'))
-        block_selected = BLOCK_STONE;
-    if(is_key_just_pressed('4'))
-        block_selected = BLOCK_SAND;
     // Raycast Place BLock
     if(!paused && is_mouse_button_just_pressed(GLUT_RIGHT_BUTTON))
     {
@@ -594,6 +597,31 @@ static void Render(void)
         glUniform3fv(u_SkyColor, 1, sky_color);
         do_postprocess(postprocess_shader, 0, 1);
         glDisable(GL_DEPTH_TEST);
+
+        if(1) {
+            frames++;
+            if(time_passed >= 1.0f)
+            {
+                fps = frames;
+                frames = 0;
+                time_passed -= 1.0f;
+            }
+
+            char buf[256];
+            sprintf_s(buf, sizeof(buf), "FPS: %d", fps);
+            render_text(buf, 20, 20, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial);
+        }
+        {
+            char buf[256];
+            sprintf_s(buf, sizeof(buf), "x: %d y: %d z: %d", (int)floorf(global_player_position[0]), (int)floorf(global_player_position[1]), (int)floorf(global_player_position[2]));
+            render_text(buf, 20, 20 + font_arial->size, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial);
+        }
+        {
+            char buf[256];
+            sprintf_s(buf, sizeof(buf), "block in hand: %s", get_block(block_selected)->name);
+            render_text(buf, 20, 20 + font_arial->size * 2, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial);
+        }
+        glEnable(GL_DEPTH_TEST);
 
         input_render_end();
     }

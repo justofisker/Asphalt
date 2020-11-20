@@ -25,6 +25,7 @@ int is_mouse_button_pressed(int button);
 int is_mouse_button_just_pressed(int button);
 void get_mouse_motion(int *x, int *y);
 void set_mouse_mode(MouseMode mode);
+int get_mouse_wheel_direction();
 
 void setup_input();
 void input_render_start();

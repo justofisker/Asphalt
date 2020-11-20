@@ -14,6 +14,7 @@ char mouse_button_states[2];
 char frame_mouse_button_states[2];
 int mouse_position[2];
 int mouse_motion[2];
+char mouse_wheel_direction = 0;
 MouseMode mouse_mode = MOUSEMODE_CURSOR;
 
 char in_game = 1;
@@ -76,6 +77,10 @@ void mouse_func(int button, int state, int x, int y)
                   mouse_button_states[1] = 1;
             frame_mouse_button_states[1] = 1;
         }
+        if(button == 3 || button == 4)
+        {
+            mouse_wheel_direction = 1 - (button == 4) * 2;
+        }
     }
     if(state == GLUT_UP)
     {
@@ -97,6 +102,11 @@ void mouse_motion_func(int x, int y)
 void set_mouse_mode(MouseMode mode)
 {
     mouse_mode = mode;
+}
+
+int get_mouse_wheel_direction()
+{
+    return mouse_wheel_direction;
 }
 
 char is_key_pressed(unsigned char key)
@@ -167,6 +177,7 @@ void input_render_end()
     memset(frame_special_states, 0, sizeof(frame_special_states));
     memset(mouse_motion, 0, sizeof(mouse_motion));
     memset(frame_mouse_button_states, 0, sizeof(frame_mouse_button_states));
+    mouse_wheel_direction = 0;
 }
 
 void setup_input()

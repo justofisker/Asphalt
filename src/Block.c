@@ -2,7 +2,6 @@
 
 #include <stdlib.h>
 
-#define BLOCK_COUNT 6
 Block blocks[BLOCK_COUNT];
 
 void setup_blocks()
@@ -21,6 +20,7 @@ void setup_blocks()
     blocks[BLOCK_AIR].tex_pos[BLOCKSIDE_DOWN][0]  = 0;
     blocks[BLOCK_AIR].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
     blocks[BLOCK_AIR].flags = BLOCKFLAG_TRANSPARENT | BLOCKFLAG_NO_COLLISION;
+    blocks[BLOCK_AIR].name = "Air";
 
     blocks[BLOCK_GRASS].tex_pos[BLOCKSIDE_NORTH][0] = 1;
     blocks[BLOCK_GRASS].tex_pos[BLOCKSIDE_NORTH][1] = 0;
@@ -35,6 +35,7 @@ void setup_blocks()
     blocks[BLOCK_GRASS].tex_pos[BLOCKSIDE_DOWN][0]  = 2;
     blocks[BLOCK_GRASS].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
     blocks[BLOCK_GRASS].flags = 0;
+    blocks[BLOCK_GRASS].name = "Grass";
 
     blocks[BLOCK_DIRT].tex_pos[BLOCKSIDE_NORTH][0] = 2;
     blocks[BLOCK_DIRT].tex_pos[BLOCKSIDE_NORTH][1] = 0;
@@ -49,6 +50,7 @@ void setup_blocks()
     blocks[BLOCK_DIRT].tex_pos[BLOCKSIDE_DOWN][0]  = 2;
     blocks[BLOCK_DIRT].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
     blocks[BLOCK_DIRT].flags = 0;
+    blocks[BLOCK_DIRT].name = "Dirt";
 
     blocks[BLOCK_STONE].tex_pos[BLOCKSIDE_NORTH][0] = 3;
     blocks[BLOCK_STONE].tex_pos[BLOCKSIDE_NORTH][1] = 0;
@@ -63,6 +65,7 @@ void setup_blocks()
     blocks[BLOCK_STONE].tex_pos[BLOCKSIDE_DOWN][0]  = 3;
     blocks[BLOCK_STONE].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
     blocks[BLOCK_STONE].flags = 0;
+    blocks[BLOCK_STONE].name = "Stone";
 
     blocks[BLOCK_WATER].tex_pos[BLOCKSIDE_NORTH][0] = 4;
     blocks[BLOCK_WATER].tex_pos[BLOCKSIDE_NORTH][1] = 0;
@@ -77,6 +80,7 @@ void setup_blocks()
     blocks[BLOCK_WATER].tex_pos[BLOCKSIDE_DOWN][0]  = 4;
     blocks[BLOCK_WATER].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
     blocks[BLOCK_WATER].flags = BLOCKFLAG_TRANSPARENT | BLOCKFLAG_NO_COLLISION | BLOCKFLAG_FLUID_MOVEMENT;
+    blocks[BLOCK_WATER].name = "Water";
 
     blocks[BLOCK_SAND].tex_pos[BLOCKSIDE_NORTH][0] = 5;
     blocks[BLOCK_SAND].tex_pos[BLOCKSIDE_NORTH][1] = 0;
@@ -91,6 +95,7 @@ void setup_blocks()
     blocks[BLOCK_SAND].tex_pos[BLOCKSIDE_DOWN][0]  = 5;
     blocks[BLOCK_SAND].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
     blocks[BLOCK_SAND].flags = 0;
+    blocks[BLOCK_SAND].name = "Sand";
 }
 
 Block* get_block(short id)
