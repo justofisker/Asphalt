@@ -204,7 +204,6 @@ static void Render(void)
     gettimeofday(&time, NULL);
     float delta = (time.tv_sec - last_frame.tv_sec) + (float)(time.tv_usec - last_frame.tv_usec) * 0.000001f;
     last_frame = time;
-    printf("%f\n", delta);
 #endif
 
     time_passed += delta;
