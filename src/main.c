@@ -105,6 +105,13 @@ static void render_look_block(int x, int y, int z)
 
 static Font *font_arial;
 
+#ifdef _WIN32
+clock_t last_frame; 
+#else
+#include <sys/time.h>
+struct timeval last_frame;
+#endif
+
 static void setup()
 {
     global_block_shader = compile_shader("res/shader/block_vertex.glsl", "res/shader/block_fragment.glsl");
@@ -129,7 +136,6 @@ static void setup()
     glm_mat4_identity(global_view);
     glm_mat4_identity(global_projection);
 
-    global_last_frame = clock();
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
@@ -140,6 +146,11 @@ static void setup()
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
+#ifdef _WIN32
+    last_frame = clock();
+#else
+    gettimeofday(&last_frame, NULL);
+#endif
     setup_blocks();
     setup_input();
     setup_postprocess();
@@ -182,11 +193,21 @@ static void Render(void)
 {
     input_render_start();
 
+
+#ifdef _WIN32
     clock_t time = clock();
-    float delta = ((float) (time - global_last_frame)) / CLOCKS_PER_SEC;
+    float delta = ((float) (time - last_frame)) / CLOCKS_PER_SEC;
     delta = fminf(delta, 0.05f);
+    last_frame = time;
+#else
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    float delta = (time.tv_sec - last_frame.tv_sec) + (float)(time.tv_usec - last_frame.tv_usec) * 0.000001f;
+    last_frame = time;
+    printf("%f\n", delta);
+#endif
+
     time_passed += delta;
-    global_last_frame = time;
 
     if(is_key_just_pressed(INPUT_KEY_ESCAPE))
     {
@@ -517,7 +538,7 @@ static void Render(void)
 
                 if(found_block) {
                     looking_at_block = 1;
-                    memcpy_s(look_block_pos, sizeof(look_block_pos), block_pos, sizeof(block_pos));
+                    memcpy(look_block_pos, block_pos, sizeof(block_pos));
 
                     if(!paused && is_mouse_button_just_pressed(GLUT_LEFT_BUTTON))
                     {
@@ -613,17 +634,17 @@ static void Render(void)
             }
 
             char buf[256];
-            sprintf_s(buf, sizeof(buf), "FPS: %d", fps);
+            sprintf(buf, "FPS: %d", fps);
             render_text(buf, 20, 20, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial);
         }
         {
             char buf[256];
-            sprintf_s(buf, sizeof(buf), "x: %d y: %d z: %d", (int)floorf(global_player_position[0]), (int)floorf(global_player_position[1]), (int)floorf(global_player_position[2]));
+            sprintf(buf, "x: %d y: %d z: %d", (int)floorf(global_player_position[0]), (int)floorf(global_player_position[1]), (int)floorf(global_player_position[2]));
             render_text(buf, 20, 20 + font_arial->size, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial);
         }
         {
             char buf[256];
-            sprintf_s(buf, sizeof(buf), "block in hand: %s", get_block(block_selected)->name);
+            sprintf(buf, "block in hand: %s", get_block(block_selected)->name);
             render_text(buf, 20, 20 + font_arial->size * 2, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial);
         }
         glEnable(GL_DEPTH_TEST);

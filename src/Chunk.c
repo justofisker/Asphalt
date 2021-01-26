@@ -46,7 +46,7 @@ void set_chunk(int x, int y, Chunk* chunk)
         chunks_to_free[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)] = previous;
 }
 
-inline void asphalt_sleep(int ms){
+void asphalt_sleep(int ms){
 #ifdef _WIN32
     Sleep(ms);
 #else
