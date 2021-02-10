@@ -60,7 +60,7 @@ Font *create_font(char *font_location, unsigned int size)
     if(FT_New_Face(ft, font_location, 0, &face))
     {
         printf("Failed to load font\n");
-        return;
+        return NULL;
     }
 
     FT_Set_Pixel_Sizes(face, 0, size);
@@ -122,7 +122,7 @@ void free_font(Font *font)
     for (i = 0; i < 128; i++)
     {
         if(font->characters[i].texture_id)
-            glDeleteTextures(1, font->characters[i].texture_id);
+            glDeleteTextures(1, &font->characters[i].texture_id);
     }
     free(font);
 }
@@ -132,7 +132,7 @@ void render_text(char *text, float x, float y, float color[4], Font *font)
     glUseProgram(text_shader);
     glUniform4fv(textcolor_loc, 1, color);
     mat4 projection;
-    glm_ortho(0.0f, global_width, 0.0f, global_height, 0.0f, 1.0f, projection);
+    glm_ortho(0.0f, g_width, 0.0f, g_height, 0.0f, 1.0f, projection);
     glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection[0]);
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(VAO);

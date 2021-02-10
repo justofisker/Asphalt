@@ -4,20 +4,14 @@
 #include "Mesh.h"
 #include "Globals.h"
 #include "Util.h"
-
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <cglm/cglm.h>
 #include <glad/glad.h>
-#include <GL/glut.h>
+#include <SDL2/SDL.h>
 #include "Block.h"
+#include <time.h>
 
 typedef struct _Vertex
 {
@@ -46,20 +40,9 @@ void set_chunk(int x, int y, Chunk* chunk)
         chunks_to_free[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)] = previous;
 }
 
-void asphalt_sleep(int ms){
-#ifdef _WIN32
-    Sleep(ms);
-#else
-    if (ms >= 1000)
-      sleep(ms / 1000);
-    usleep((ms % 1000) * 1000);
-#endif
-}
+#define WAIT_FOR_UNLOCK(chunk) while(chunk->locked) { SDL_Delay(0); }
 
-
-#define WAIT_FOR_UNLOCK(chunk) while(chunk->locked) { asphalt_sleep(0); }
-
-static inline void fill_surounding_chunk(x, y)
+static inline void fill_surounding_chunk(int x, int y)
 {
     Chunk* chunk = get_chunk(x, y); 
     if(chunk && !chunk->mesh 
@@ -73,27 +56,18 @@ static inline void fill_surounding_chunk(x, y)
     }
 }
 
-#ifdef _WIN32
-HANDLE chunk_thread;
-DWORD chunk_thread_id;
+SDL_Thread *generation_thread;
 
-DWORD WINAPI async_generate_chunks(LPVOID lpParam)
-#elif __linux__
-#include <pthread.h>
-
-pthread_t generation_thread;
-
-void* async_generate_chunks(void* arg)
-#endif
+static int async_generate_chunks(void* arg)
 {
-    srand(time(0));
+    srand((unsigned int)time(0));
     while(1)
     {
 
-    int x, y;
+    int x = 0, y = 0;
     int chunks_generated = 0;
-    int cur_x = (int)(global_player_position[0]) / CHUNK_SIZE_XZ;
-    int cur_y = (int)(global_player_position[2]) / CHUNK_SIZE_XZ;
+    int cur_x = (int)(g_player_position[0]) / CHUNK_SIZE_XZ;
+    int cur_y = (int)(g_player_position[2]) / CHUNK_SIZE_XZ;
     spiral: if(!dontGenerate || last_x != cur_x || last_y != cur_y)
     {
         last_x = cur_x;
@@ -122,11 +96,11 @@ void* async_generate_chunks(void* arg)
                     fill_surounding_chunk(chunk_x, chunk_y + 1);
 
 
-                    if (cur_x != (int)(global_player_position[0]) / CHUNK_SIZE_XZ
-                     || cur_y != (int)(global_player_position[2]) / CHUNK_SIZE_XZ)
+                    if (cur_x != (int)(g_player_position[0]) / CHUNK_SIZE_XZ
+                     || cur_y != (int)(g_player_position[2]) / CHUNK_SIZE_XZ)
                     { 
-                        cur_x = (int)(global_player_position[0]) / CHUNK_SIZE_XZ;
-                        cur_y = (int)(global_player_position[2]) / CHUNK_SIZE_XZ;
+                        cur_x = (int)(g_player_position[0]) / CHUNK_SIZE_XZ;
+                        cur_y = (int)(g_player_position[2]) / CHUNK_SIZE_XZ;
                         goto spiral;
                     }
                 }
@@ -148,7 +122,7 @@ void* async_generate_chunks(void* arg)
         last_y = cur_y;
     }
 
-    asphalt_sleep(50);
+    SDL_Delay(50);
 
     }
 
@@ -554,22 +528,18 @@ void setup_chunk_thread()
 {
     memset(chunks, 0, sizeof(chunks));
     memset(chunks_to_free, 0, sizeof(chunks_to_free));
-#ifdef _WIN32
-    chunk_thread = CreateThread(NULL, 0, async_generate_chunks, NULL, 0, &chunk_thread_id);
-#elif __linux__
-    pthread_create(&generation_thread, NULL, async_generate_chunks, NULL);
-#endif
+    generation_thread = SDL_CreateThread(async_generate_chunks, "Generate Thread", (void*)NULL);
 }
 
 void render_chunks()
 {
-    glUseProgram(global_block_shader);
-    glUniformMatrix4fv(global_block_view_loc, 1, GL_FALSE, global_view[0]);
-    glUniformMatrix4fv(global_block_projection_loc, 1, GL_FALSE, global_projection[0]);
-    glUniform1f(global_block_view_near_loc, global_camera_info.fNear);
-    glUniform1f(global_block_view_far_loc, global_camera_info.fFar);
-    bind_texture(global_texture, 0);
-    glUniform1i(global_block_texture_loc, 0);
+    glUseProgram(g_block_shader);
+    glUniformMatrix4fv(g_block_view_loc, 1, GL_FALSE, g_view[0]);
+    glUniformMatrix4fv(g_block_projection_loc, 1, GL_FALSE, g_projection[0]);
+    glUniform1f(g_block_view_near_loc, g_camera_info.fNear);
+    glUniform1f(g_block_view_far_loc, g_camera_info.fFar);
+    bind_texture(g_texture, 0);
+    glUniform1i(g_block_texture_loc, 0);
 
     int x, y;
     for(x = 0; x < CHUNK_ARR_SIZE; x++)
@@ -631,9 +601,9 @@ void render_chunks()
 void render_chunk(Chunk *chunk, char transparent)
 {
     mat4 model = GLM_MAT4_IDENTITY_INIT;
-    glm_translate(model, (vec3){chunk->x * CHUNK_SIZE_XZ - global_player_position[0], 0.0f - global_player_position[1], chunk->y * CHUNK_SIZE_XZ - global_player_position[2]});
+    glm_translate(model, (vec3){chunk->x * CHUNK_SIZE_XZ - g_player_position[0], 0.0f - g_player_position[1], chunk->y * CHUNK_SIZE_XZ - g_player_position[2]});
 
-    glUniformMatrix4fv(global_block_model_loc, 1, GL_FALSE, model[0]);
+    glUniformMatrix4fv(g_block_model_loc, 1, GL_FALSE, model[0]);
     glBindVertexArray((transparent ? chunk->transparent_mesh : chunk->mesh)->array_object);
     glDrawElements(GL_TRIANGLES, (transparent ? chunk->transparent_mesh : chunk->mesh)->index_count, (transparent ? chunk->transparent_mesh : chunk->mesh)->index_type, (void*)0);
 

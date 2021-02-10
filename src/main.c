@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <glad/glad.h>
-#ifdef __APPLE__
-#include <GLUT/glut.h>
-#else
-#include <GL/glut.h>
+#ifdef MINGW
+#define SDL_MAIN_HANDLED
 #endif
+#include <SDL2/SDL.h>
 #include <cglm/cglm.h>
 #include <math.h>
 #include <string.h>
@@ -91,12 +90,12 @@ static void setup_look_block()
 static void render_look_block(int x, int y, int z)
 {
     mat4 model = GLM_MAT4_IDENTITY_INIT;
-    glm_translate(model, (vec3){x  - global_player_position[0], y - global_player_position[1], z - global_player_position[2]});
-    glUseProgram(global_color_shader);
-    glUniformMatrix4fv(global_color_model_loc, 1, GL_FALSE, model[0]);
-    glUniformMatrix4fv(global_color_view_loc, 1, GL_FALSE, global_view[0]);
-    glUniformMatrix4fv(global_color_projection_loc, 1, GL_FALSE, global_projection[0]);
-    glUniform4f(global_color_color_loc, 0.0f, 0.0f, 0.0f, 1.0f);
+    glm_translate(model, (vec3){x  - g_player_position[0], y - g_player_position[1], z - g_player_position[2]});
+    glUseProgram(g_color_shader);
+    glUniformMatrix4fv(g_color_model_loc, 1, GL_FALSE, model[0]);
+    glUniformMatrix4fv(g_color_view_loc, 1, GL_FALSE, g_view[0]);
+    glUniformMatrix4fv(g_color_projection_loc, 1, GL_FALSE, g_projection[0]);
+    glUniform4f(g_color_color_loc, 0.0f, 0.0f, 0.0f, 1.0f);
     glBindVertexArray(look_block_mesh->array_object);
     glLineWidth(1.5f);
     glDrawElements(GL_LINES, look_block_mesh->index_count, look_block_mesh->index_type, (void*)0);
@@ -105,36 +104,32 @@ static void render_look_block(int x, int y, int z)
 
 static Font *font_arial;
 
-#ifdef _WIN32
-clock_t last_frame; 
-#else
-#include <sys/time.h>
-struct timeval last_frame;
-#endif
+
+Uint64 last_frame = 0;
 
 static void setup()
 {
-    global_block_shader = compile_shader("res/shader/block_vertex.glsl", "res/shader/block_fragment.glsl");
+    g_block_shader = compile_shader("res/shader/block_vertex.glsl", "res/shader/block_fragment.glsl");
     postprocess_shader = compile_shader("res/shader/postprocess_vertex.glsl", "res/shader/postprocess_fragment.glsl");
-    global_color_shader = compile_shader("res/shader/color_vertex.glsl", "res/shader/color_fragment.glsl");
-    global_texture = create_texture("res/texture/blocks.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, 0, 0.0f);
+    g_color_shader = compile_shader("res/shader/color_vertex.glsl", "res/shader/color_fragment.glsl");
+    g_texture = create_texture("res/texture/blocks.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, 0, 0.0f);
 
-    global_block_model_loc = glGetUniformLocation(global_block_shader, "u_Model");
-    global_block_view_loc = glGetUniformLocation(global_block_shader, "u_View");
-    global_block_projection_loc = glGetUniformLocation(global_block_shader, "u_Projection");
-    global_block_texture_loc = glGetUniformLocation(global_block_shader, "u_Texture");
-    global_block_view_near_loc = glGetUniformLocation(global_block_shader, "u_ViewNear");
-    global_block_view_far_loc = glGetUniformLocation(global_block_shader, "u_ViewFar");
-    global_color_model_loc = glGetUniformLocation(global_color_shader, "u_Model");
-    global_color_view_loc = glGetUniformLocation(global_color_shader, "u_View");
-    global_color_projection_loc = glGetUniformLocation(global_color_shader, "u_Projection");
-    global_color_color_loc = glGetUniformLocation(global_color_shader, "u_Color");
+    g_block_model_loc = glGetUniformLocation(g_block_shader, "u_Model");
+    g_block_view_loc = glGetUniformLocation(g_block_shader, "u_View");
+    g_block_projection_loc = glGetUniformLocation(g_block_shader, "u_Projection");
+    g_block_texture_loc = glGetUniformLocation(g_block_shader, "u_Texture");
+    g_block_view_near_loc = glGetUniformLocation(g_block_shader, "u_ViewNear");
+    g_block_view_far_loc = glGetUniformLocation(g_block_shader, "u_ViewFar");
+    g_color_model_loc = glGetUniformLocation(g_color_shader, "u_Model");
+    g_color_view_loc = glGetUniformLocation(g_color_shader, "u_View");
+    g_color_projection_loc = glGetUniformLocation(g_color_shader, "u_Projection");
+    g_color_color_loc = glGetUniformLocation(g_color_shader, "u_Color");
 
-    glm_vec3_zero(global_player_position);
-    global_player_position[1] = 255.0f;
-    glm_vec3_zero(global_camera_rotation);
-    glm_mat4_identity(global_view);
-    glm_mat4_identity(global_projection);
+    glm_vec3_zero(g_player_position);
+    g_player_position[1] = 255.0f;
+    glm_vec3_zero(g_camera_rotation);
+    glm_mat4_identity(g_view);
+    glm_mat4_identity(g_projection);
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
@@ -146,11 +141,7 @@ static void setup()
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-#ifdef _WIN32
-    last_frame = clock();
-#else
-    gettimeofday(&last_frame, NULL);
-#endif
+    last_frame = SDL_GetPerformanceCounter();
     setup_blocks();
     setup_input();
     setup_postprocess();
@@ -165,9 +156,9 @@ static void setup()
 
 static void Resize(int w, int h)
 {
-    global_width = w > 1 ? w : 1;
-    global_height = h > 1 ? h : 1;
-    glViewport(0, 0, global_width, global_height);
+    g_width = w > 1 ? w : 1;
+    g_height = h > 1 ? h : 1;
+    glViewport(0, 0, g_width, g_height);
     
     resize_postprocess();
 
@@ -193,22 +184,14 @@ static void Render(void)
 {
     input_render_start();
 
-
-#ifdef _WIN32
-    clock_t time = clock();
-    float delta = ((float) (time - last_frame)) / CLOCKS_PER_SEC;
-    delta = fminf(delta, 0.05f);
-    last_frame = time;
-#else
-    struct timeval time;
-    gettimeofday(&time, NULL);
-    float delta = (time.tv_sec - last_frame.tv_sec) + (float)(time.tv_usec - last_frame.tv_usec) * 0.000001f;
-    last_frame = time;
-#endif
+    Uint64 now = SDL_GetPerformanceCounter();
+    float delta = (float)(now - last_frame) / SDL_GetPerformanceFrequency();
+    last_frame = now;
+    if(delta >= 0.1f) delta = 0.1f;
 
     time_passed += delta;
 
-    if(is_key_just_pressed(INPUT_KEY_ESCAPE))
+    if(is_key_just_pressed(SDLK_ESCAPE))
     {
         paused = !paused;
         if(paused)
@@ -221,16 +204,16 @@ static void Render(void)
     {
         int motion_x, motion_y;
         get_mouse_motion(&motion_x, &motion_y);
-        global_camera_rotation[0] += glm_rad((float)motion_y / 10);
-        global_camera_rotation[0] = fmaxf(fminf(glm_rad(90.f), global_camera_rotation[0]), glm_rad(-90.f));
-        global_camera_rotation[1] += glm_rad((float)motion_x / 10);
-        global_camera_rotation[1] = fmodf(global_camera_rotation[1], GLM_PIf * 2);
+        g_camera_rotation[0] += glm_rad((float)motion_y / 10);
+        g_camera_rotation[0] = fmaxf(fminf(glm_rad(90.f), g_camera_rotation[0]), glm_rad(-90.f));
+        g_camera_rotation[1] += glm_rad((float)motion_x / 10);
+        g_camera_rotation[1] = fmodf(g_camera_rotation[1], GLM_PIf * 2);
     }
 
     vec3 movement = GLM_VEC3_ZERO_INIT;
 
     time_since_space += delta;
-    if(is_key_just_pressed(' ') && !paused)
+    if(is_key_just_pressed(SDLK_SPACE) && !paused)
     {
         if(time_since_space < 0.25)
             fly_mode = !fly_mode;
@@ -238,32 +221,31 @@ static void Render(void)
             time_since_space = 0.f;
     }
     time_since_forward += delta;
-    if(is_key_just_pressed('w') && !paused)
+    if(is_key_just_pressed(SDLK_w) && !paused)
     {
         if(time_since_forward < 0.25)
             sprint_mode = 1;
         else
             time_since_forward = 0.f;
     }
-    if(is_key_just_pressed('r') && !paused)
+    if(is_key_just_pressed(SDLK_r) && !paused)
     {
         sprint_mode = 1;
     }
-    if(!is_key_pressed('w') || paused)
+    if(!is_key_pressed(SDLK_w) || paused)
     {
         sprint_mode = 0;
     }
-    if(is_key_just_pressed('f'))
+    if(is_key_just_pressed(SDLK_f))
     {
         fullscreen = !fullscreen;
         if(fullscreen)
         {
-            glutFullScreen();
+            SDL_SetWindowFullscreen(g_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
         }
         else
         {
-            glutPositionWindow(glutGet(GLUT_SCREEN_WIDTH) / 2 - 1280 / 2, glutGet(GLUT_SCREEN_HEIGHT) / 2 - 720 / 2);
-            glutReshapeWindow(1280, 720);
+            SDL_SetWindowFullscreen(g_window, 0);
         }
     }
 
@@ -282,9 +264,9 @@ static void Render(void)
         vec3 direction = {0, 0, 0};
         float speed = 0.0f;
         // Normal Walk
-        char in_fluid = (get_block(get_block_id_at(floorf(global_player_position[0]),floorf(global_player_position[1]),floorf(global_player_position[2])))->flags & BLOCKFLAG_FLUID_MOVEMENT)
-                     || (get_block(get_block_id_at(floorf(global_player_position[0]),floorf(global_player_position[1] + 1.0f),floorf(global_player_position[2])))->flags & BLOCKFLAG_FLUID_MOVEMENT)
-                     || (get_block(get_block_id_at(floorf(global_player_position[0]),floorf(global_player_position[1] + PLAYER_HEIGHT),floorf(global_player_position[2])))->flags & BLOCKFLAG_FLUID_MOVEMENT);
+        char in_fluid = (get_block(get_block_id_at(floorf(g_player_position[0]),floorf(g_player_position[1]),floorf(g_player_position[2])))->flags & BLOCKFLAG_FLUID_MOVEMENT)
+                     || (get_block(get_block_id_at(floorf(g_player_position[0]),floorf(g_player_position[1] + 1.0f),floorf(g_player_position[2])))->flags & BLOCKFLAG_FLUID_MOVEMENT)
+                     || (get_block(get_block_id_at(floorf(g_player_position[0]),floorf(g_player_position[1] + PLAYER_HEIGHT),floorf(g_player_position[2])))->flags & BLOCKFLAG_FLUID_MOVEMENT);
         if(in_fluid)
         {
             if(velocity[1] < -3.f)
@@ -296,15 +278,15 @@ static void Render(void)
             }
             if (!paused) {
                 speed = 4.0f;
-                if(is_key_pressed('a'))
+                if(is_key_pressed(SDLK_a))
                     direction[0] -= 1.0f;
-                if(is_key_pressed('d'))
+                if(is_key_pressed(SDLK_d))
                     direction[0] += 1.0f;
-                if(is_key_pressed('w'))
+                if(is_key_pressed(SDLK_w))
                     direction[2] -= 1.0f;
-                if(is_key_pressed('s'))
+                if(is_key_pressed(SDLK_s))
                     direction[2] += 1.0f;
-                if(is_key_pressed(' '))
+                if(is_key_pressed(SDLK_SPACE))
                 {
                     velocity[1] += 14.f * delta;
                     velocity[1] = fminf(velocity[1], 4.f);
@@ -316,22 +298,22 @@ static void Render(void)
             velocity[1] -= 24.0f * delta;
             if (!paused) {
                 speed = 4.0f;
-                if(is_key_pressed('a'))
+                if(is_key_pressed(SDLK_a))
                     direction[0] -= 1.0f;
-                if(is_key_pressed('d'))
+                if(is_key_pressed(SDLK_d))
                     direction[0] += 1.0f;
-                if(is_key_pressed('w'))
+                if(is_key_pressed(SDLK_w))
                     direction[2] -= 1.0f;
-                if(is_key_pressed('s'))
+                if(is_key_pressed(SDLK_s))
                     direction[2] += 1.0f;
-                if(is_key_pressed(' ') && on_ground)
+                if(is_key_pressed(SDLK_SPACE) && on_ground)
                     velocity[1] = 8.f;
             }
         }
         if(sprint_mode)
             speed *= 1.65f;
         glm_normalize(direction);
-        glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
+        glm_vec3_rotate(direction, -g_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
         glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
         glm_vec3_add(movement, direction, movement);
     }
@@ -341,27 +323,23 @@ static void Render(void)
             vec3 direction = {0, 0, 0};
             // Fly
             if(!paused) {
-                if(is_key_pressed('a'))
+                if(is_key_pressed(SDLK_a))
                     direction[0] -= 1.0f;
-                if(is_key_pressed('d'))
+                if(is_key_pressed(SDLK_d))
                     direction[0] += 1.0f;
-                if(is_key_pressed('w'))
+                if(is_key_pressed(SDLK_w))
                     direction[2] -= 1.0f;
-                if(is_key_pressed('s'))
+                if(is_key_pressed(SDLK_s))
                     direction[2] += 1.0f;
-                if(is_key_pressed(' '))
+                if(is_key_pressed(SDLK_SPACE))
                     velocity[1] = 10.0f;
-#ifdef _WIN32
-                if(GetKeyState(VK_SHIFT) & 0x8000)
-#else
-                if(is_key_pressed('c'))
-#endif
+                if(SDL_GetModState() & KMOD_SHIFT)
                     velocity[1] = -10.0f;
             }
             if(sprint_mode)
                 speed *= 1.65f;
             glm_normalize(direction);
-            glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
+            glm_vec3_rotate(direction, -g_camera_rotation[1], (vec3){0.f, 1.f, 0.f});
             glm_vec3_mul(direction, (vec3){delta * speed, delta * speed, delta * speed}, direction);
             glm_vec3_add(movement, direction, movement);
         }
@@ -374,29 +352,29 @@ static void Render(void)
 
     // Collison Detection
     if(1){
-        char change_y = (int)floorf(global_player_position[1] + movement[1]) - (int)floorf(global_player_position[1]);
+        char change_y = (int)floorf(g_player_position[1] + movement[1]) - (int)floorf(g_player_position[1]);
 
-        char change_x_positive = (int)floorf(global_player_position[0] + movement[0] + PLAYER_SIZE) - (int)floorf(global_player_position[0] + PLAYER_SIZE);
-        char change_z_positive = (int)floorf(global_player_position[2] + movement[2] + PLAYER_SIZE) - (int)floorf(global_player_position[2] + PLAYER_SIZE);
-        char change_x_negative = (int)floorf(global_player_position[0] + movement[0] - PLAYER_SIZE) - (int)floorf(global_player_position[0] - PLAYER_SIZE);
-        char change_z_negative = (int)floorf(global_player_position[2] + movement[2] - PLAYER_SIZE) - (int)floorf(global_player_position[2] - PLAYER_SIZE);
+        char change_x_positive = (int)floorf(g_player_position[0] + movement[0] + PLAYER_SIZE) - (int)floorf(g_player_position[0] + PLAYER_SIZE);
+        char change_z_positive = (int)floorf(g_player_position[2] + movement[2] + PLAYER_SIZE) - (int)floorf(g_player_position[2] + PLAYER_SIZE);
+        char change_x_negative = (int)floorf(g_player_position[0] + movement[0] - PLAYER_SIZE) - (int)floorf(g_player_position[0] - PLAYER_SIZE);
+        char change_z_negative = (int)floorf(g_player_position[2] + movement[2] - PLAYER_SIZE) - (int)floorf(g_player_position[2] - PLAYER_SIZE);
         char change_x = (change_x_positive > 0) ? change_x_positive : (change_x_negative < 0) ? change_x_negative : 0;
         char change_z = (change_z_positive > 0) ? change_z_positive : (change_z_negative < 0) ? change_z_negative : 0;
 
-        int y_1 = (int)floorf(global_player_position[1] + 0.f);
-        int y_2 = (int)floorf(global_player_position[1] + 1.0f);
-        int y_3 = (int)floorf(global_player_position[1] + PLAYER_HEIGHT);
+        int y_1 = (int)floorf(g_player_position[1] + 0.f);
+        int y_2 = (int)floorf(g_player_position[1] + 1.0f);
+        int y_3 = (int)floorf(g_player_position[1] + PLAYER_HEIGHT);
 
         if(change_y < 0)
         {
             if(
-                (get_block(get_block_id_at(floorf(global_player_position[0] - PLAYER_SIZE), y_1 + change_y, floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at(floorf(global_player_position[0] + PLAYER_SIZE), y_1 + change_y, floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at(floorf(global_player_position[0] + PLAYER_SIZE), y_1 + change_y, floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at(floorf(global_player_position[0] - PLAYER_SIZE), y_1 + change_y, floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                (get_block(get_block_id_at(floorf(g_player_position[0] - PLAYER_SIZE), y_1 + change_y, floorf(g_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at(floorf(g_player_position[0] + PLAYER_SIZE), y_1 + change_y, floorf(g_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at(floorf(g_player_position[0] + PLAYER_SIZE), y_1 + change_y, floorf(g_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at(floorf(g_player_position[0] - PLAYER_SIZE), y_1 + change_y, floorf(g_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
                 )
             {
-                movement[1] = (float)(y_1) - global_player_position[1];
+                movement[1] = (float)(y_1) - g_player_position[1];
                 velocity[1] = 0.0f;
                 on_ground = 1;
             } else on_ground = 0;       
@@ -406,33 +384,33 @@ static void Render(void)
             if(movement[1] > 0.f)
             {
                 if(
-                    (get_block(get_block_id_at(floorf(global_player_position[0]), floorf(global_player_position[1] + movement[1] + PLAYER_HEIGHT), floorf(global_player_position[2])))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                    (get_block(get_block_id_at(floorf(g_player_position[0]), floorf(g_player_position[1] + movement[1] + PLAYER_HEIGHT), floorf(g_player_position[2])))->flags & BLOCKFLAG_NO_COLLISION) == 0
                 )
                 {
-                    movement[1] = (float)(y_3 + 1) - (global_player_position[1] + PLAYER_HEIGHT);
+                    movement[1] = (float)(y_3 + 1) - (g_player_position[1] + PLAYER_HEIGHT);
                     velocity[1] = 0.0f;
                 }
             }
         }
 
-        int y_0 = (int)floorf(global_player_position[1] + movement[1]);
+        int y_0 = (int)floorf(g_player_position[1] + movement[1]);
 
         if(change_x && change_z)
         {
             if(
-                (get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_0, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_1, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_2, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_3, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                (get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_0, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_1, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_2, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_3, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
                 )
             {
                 if(fabsf(movement[0]) > fabsf(movement[2]))
                 {
                     if(
-                        !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_0, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
-                     && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_1, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
-                     && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_2, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
-                     && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_3, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                        !(get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_0, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                     && !(get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_1, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                     && !(get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_2, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                     && !(get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_x, y_3, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE))))->flags & BLOCKFLAG_NO_COLLISION) == 0
                     )
                     {
                         movement[2] = 0.f;   
@@ -441,10 +419,10 @@ static void Render(void)
                 else if(fabsf(movement[2]) > fabsf(movement[0]))
                 {
                     if(
-                       !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_0, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-                    && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_1, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-                    && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_2, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-                    && !(get_block(get_block_id_at((int)floorf(global_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_3, (int)floorf(global_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                       !(get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_0, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                    && !(get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_1, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                    && !(get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_2, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                    && !(get_block(get_block_id_at((int)floorf(g_player_position[0] + (change_x > 0 ? PLAYER_SIZE : -PLAYER_SIZE)), y_3, (int)floorf(g_player_position[2] + (change_z > 0 ? PLAYER_SIZE : -PLAYER_SIZE)) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
                     )
                     {
                         movement[0] = 0.f;  
@@ -458,24 +436,24 @@ static void Render(void)
             }
         }
 
-        change_x_positive = (int)floorf(global_player_position[0] + movement[0] + PLAYER_SIZE) - (int)floorf(global_player_position[0] + PLAYER_SIZE);
-        change_z_positive = (int)floorf(global_player_position[2] + movement[2] + PLAYER_SIZE) - (int)floorf(global_player_position[2] + PLAYER_SIZE);
-        change_x_negative = (int)floorf(global_player_position[0] + movement[0] - PLAYER_SIZE) - (int)floorf(global_player_position[0] - PLAYER_SIZE);
-        change_z_negative = (int)floorf(global_player_position[2] + movement[2] - PLAYER_SIZE) - (int)floorf(global_player_position[2] - PLAYER_SIZE);
+        change_x_positive = (int)floorf(g_player_position[0] + movement[0] + PLAYER_SIZE) - (int)floorf(g_player_position[0] + PLAYER_SIZE);
+        change_z_positive = (int)floorf(g_player_position[2] + movement[2] + PLAYER_SIZE) - (int)floorf(g_player_position[2] + PLAYER_SIZE);
+        change_x_negative = (int)floorf(g_player_position[0] + movement[0] - PLAYER_SIZE) - (int)floorf(g_player_position[0] - PLAYER_SIZE);
+        change_z_negative = (int)floorf(g_player_position[2] + movement[2] - PLAYER_SIZE) - (int)floorf(g_player_position[2] - PLAYER_SIZE);
         change_x = (change_x_positive > 0) ? change_x_positive : (change_x_negative < 0) ? change_x_negative : 0;
         change_z = (change_z_positive > 0) ? change_z_positive : (change_z_negative < 0) ? change_z_negative : 0;
 
         if(change_x)
         {
             if(
-                (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_0, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_1, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_2, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_3, (int)floorf(global_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_0, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_1, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_2, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0]) + change_x, y_3, (int)floorf(global_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                (get_block(get_block_id_at((int)floorf(g_player_position[0]) + change_x, y_0, (int)floorf(g_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0]) + change_x, y_1, (int)floorf(g_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0]) + change_x, y_2, (int)floorf(g_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0]) + change_x, y_3, (int)floorf(g_player_position[2] + PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0]) + change_x, y_0, (int)floorf(g_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0]) + change_x, y_1, (int)floorf(g_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0]) + change_x, y_2, (int)floorf(g_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0]) + change_x, y_3, (int)floorf(g_player_position[2] - PLAYER_SIZE)))->flags & BLOCKFLAG_NO_COLLISION) == 0
                 )
             {
                 movement[0] = 0.f;
@@ -484,14 +462,14 @@ static void Render(void)
         if(change_z)
         {
             if(
-                (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_0, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] + PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_0, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_1, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_2, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
-             || (get_block(get_block_id_at((int)floorf(global_player_position[0] - PLAYER_SIZE), y_3, (int)floorf(global_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+                (get_block(get_block_id_at((int)floorf(g_player_position[0] + PLAYER_SIZE), y_0, (int)floorf(g_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0] + PLAYER_SIZE), y_1, (int)floorf(g_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0] + PLAYER_SIZE), y_2, (int)floorf(g_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0] + PLAYER_SIZE), y_3, (int)floorf(g_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0] - PLAYER_SIZE), y_0, (int)floorf(g_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0] - PLAYER_SIZE), y_1, (int)floorf(g_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0] - PLAYER_SIZE), y_2, (int)floorf(g_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
+             || (get_block(get_block_id_at((int)floorf(g_player_position[0] - PLAYER_SIZE), y_3, (int)floorf(g_player_position[2]) + change_z))->flags & BLOCKFLAG_NO_COLLISION) == 0
                 )
             {
                 movement[2] = 0.f;
@@ -499,7 +477,7 @@ static void Render(void)
         }
     }
     
-    glm_vec3_add(global_player_position, movement, global_player_position);
+    glm_vec3_add(g_player_position, movement, g_player_position);
 
     char looking_at_block = 0;
     int look_block_pos[3];
@@ -515,10 +493,10 @@ static void Render(void)
         vec3 origin;
         vec3 direction = {0.0f, 0.0f, -1.0f};
 
-        glm_vec3_copy(global_player_position, origin);
-        glm_vec3_add(origin, global_camera_offset, origin);
-        glm_vec3_rotate(direction, -global_camera_rotation[0], (vec3){1.0f, 0.0f, 0.0f});
-        glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.0f, 1.0f, 0.0f});
+        glm_vec3_copy(g_player_position, origin);
+        glm_vec3_add(origin, g_camera_offset, origin);
+        glm_vec3_rotate(direction, -g_camera_rotation[0], (vec3){1.0f, 0.0f, 0.0f});
+        glm_vec3_rotate(direction, -g_camera_rotation[1], (vec3){0.0f, 1.0f, 0.0f});
         glm_normalize(direction);
         glm_vec3_mul(direction, (vec3){ray_inc, ray_inc, ray_inc}, direction);
 
@@ -539,7 +517,7 @@ static void Render(void)
                     looking_at_block = 1;
                     memcpy(look_block_pos, block_pos, sizeof(block_pos));
 
-                    if(!paused && is_mouse_button_just_pressed(GLUT_LEFT_BUTTON))
+                    if(!paused && is_mouse_button_just_pressed(SDL_BUTTON_LEFT))
                     {
                         set_block_at(block_pos[0], block_pos[1], block_pos[2], 0);
                     }
@@ -551,7 +529,7 @@ static void Render(void)
     }
 
     // Raycast Place BLock
-    if(!paused && is_mouse_button_just_pressed(GLUT_RIGHT_BUTTON))
+    if(!paused && is_mouse_button_just_pressed(SDL_BUTTON_RIGHT))
     {
         float max_distance = 10.0f;
 
@@ -559,10 +537,10 @@ static void Render(void)
         vec3 direction = {0.0f, 0.0f, -1.0f};
         vec3 ray_inc = {0.05f, 0.05f, 0.05f};
 
-        glm_vec3_copy(global_player_position, origin);
-        glm_vec3_add(origin, global_camera_offset, origin);
-        glm_vec3_rotate(direction, -global_camera_rotation[0], (vec3){1.0f, 0.0f, 0.0f});
-        glm_vec3_rotate(direction, -global_camera_rotation[1], (vec3){0.0f, 1.0f, 0.0f});
+        glm_vec3_copy(g_player_position, origin);
+        glm_vec3_add(origin, g_camera_offset, origin);
+        glm_vec3_rotate(direction, -g_camera_rotation[0], (vec3){1.0f, 0.0f, 0.0f});
+        glm_vec3_rotate(direction, -g_camera_rotation[1], (vec3){0.0f, 1.0f, 0.0f});
         glm_normalize(direction);
         glm_vec3_mul(ray_inc, direction, ray_inc);
 
@@ -584,9 +562,9 @@ static void Render(void)
                     int block_pos[3] = { floorf(position[0]), floorf(position[1]), floorf(position[2]) };
 
                     {
-                        if( ((int)floorf(global_player_position[0]) == block_pos[0] && (int)floorf(global_player_position[1]) == block_pos[1] && (int)floorf(global_player_position[2]) == block_pos[2])
-                         || ((int)floorf(global_player_position[0]) == block_pos[0] && (int)floorf(global_player_position[1] + 1.0f) == block_pos[1] && (int)floorf(global_player_position[2]) == block_pos[2])
-                         || ((int)floorf(global_player_position[0]) == block_pos[0] && (int)floorf(global_player_position[1] + PLAYER_HEIGHT) == block_pos[1] && (int)floorf(global_player_position[2]) == block_pos[2]) )
+                        if( ((int)floorf(g_player_position[0]) == block_pos[0] && (int)floorf(g_player_position[1]) == block_pos[1] && (int)floorf(g_player_position[2]) == block_pos[2])
+                         || ((int)floorf(g_player_position[0]) == block_pos[0] && (int)floorf(g_player_position[1] + 1.0f) == block_pos[1] && (int)floorf(g_player_position[2]) == block_pos[2])
+                         || ((int)floorf(g_player_position[0]) == block_pos[0] && (int)floorf(g_player_position[1] + PLAYER_HEIGHT) == block_pos[1] && (int)floorf(g_player_position[2]) == block_pos[2]) )
                         {
                             break;
                         }
@@ -600,7 +578,7 @@ static void Render(void)
         }
     }
 
-    if(is_mouse_button_just_pressed(GLUT_MIDDLE_BUTTON))
+    if(is_mouse_button_just_pressed(SDL_BUTTON_MIDDLE))
     {
         block_selected = get_block_id_at(look_block_pos[0], look_block_pos[1], look_block_pos[2]);
     }
@@ -613,11 +591,11 @@ static void Render(void)
         render_end_postprocess();
         glUseProgram(postprocess_shader);
         int u_bInWater = glGetUniformLocation(postprocess_shader, "u_bInWater");
-        glUniform1i (u_bInWater, (get_block_id_at(floorf(global_player_position[0]), floorf(global_player_position[1] + global_camera_offset[1]), floorf(global_player_position[2])) == BLOCK_WATER) );
+        glUniform1i (u_bInWater, (get_block_id_at(floorf(g_player_position[0]), floorf(g_player_position[1] + g_camera_offset[1]), floorf(g_player_position[2])) == BLOCK_WATER) );
         int u_ScreenHeight = glGetUniformLocation(postprocess_shader, "u_ScreenHeight");
-        glUniform1i(u_ScreenHeight, global_height);
+        glUniform1i(u_ScreenHeight, g_height);
         int u_ScreenWidth = glGetUniformLocation(postprocess_shader, "u_ScreenWidth");
-        glUniform1i(u_ScreenWidth, global_width);
+        glUniform1i(u_ScreenWidth, g_width);
         int u_SkyColor = glGetUniformLocation(postprocess_shader, "u_SkyColor");
         glUniform3fv(u_SkyColor, 1, sky_color);
         do_postprocess(postprocess_shader, 0, 1);
@@ -638,7 +616,7 @@ static void Render(void)
         }
         {
             char buf[256];
-            sprintf(buf, "x: %d y: %d z: %d", (int)floorf(global_player_position[0]), (int)floorf(global_player_position[1]), (int)floorf(global_player_position[2]));
+            sprintf(buf, "x: %d y: %d z: %d", (int)floorf(g_player_position[0]), (int)floorf(g_player_position[1]), (int)floorf(g_player_position[2]));
             render_text(buf, 20, 20 + font_arial->size, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial);
         }
         {
@@ -653,37 +631,35 @@ static void Render(void)
     render_end();
 }
 
-int main(int argc, char **argv)
+int main(int argc, char* argv[])
 {
     srand(time(0));
-    if(gladLoadGL()) {
-        // you need an OpenGL context before loading glad
-        printf("I did load GL with no context!\n");
-        exit(-1);
+
+    if(SDL_Init(SDL_INIT_VIDEO) != 0)
+    {
+        SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
+        return 1;
     }
 
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
-    
-    glutInitWindowSize(global_width, global_height);
-    glutCreateWindow(WINDOW_TITLE);
+    g_window = SDL_CreateWindow("Asphalt",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        1280, 720,
+        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
-    glutReshapeFunc(Resize);
-    glutDisplayFunc(Render);
-    glutKeyboardFunc(keyboard_func);
-    glutKeyboardUpFunc(keyboard_func_up);
-    glutSpecialFunc(special_func);
-    glutSpecialUpFunc(special_func_up);
-    glutPassiveMotionFunc(mouse_motion_func);
-    glutMotionFunc(mouse_motion_func);
-    glutMouseFunc(mouse_func);
+    if(g_window == NULL)
+    {
+        SDL_Log("Unable to create window: %s", SDL_GetError());
+        return 1;
+    }
+
+    SDL_GL_CreateContext(g_window);
 
     if(!gladLoadGL()) {
-        printf("Something went wrong!\n");
+        printf("No OpenGL context!\n");
         exit(-1);
     }
 
-    // gladLoadGLLoader(&glutGetProcAddress);
     printf("OpenGL %d.%d\n", GLVersion.major, GLVersion.minor);
     if (GLVersion.major < 2) {
         printf("Your system doesn't support OpenGL >= 2!\n");
@@ -695,7 +671,55 @@ int main(int argc, char **argv)
 
     setup();
 
-    glutMainLoop();
+    char running = true;
+    SDL_Event event;
+    while(running)
+    {
+        while(SDL_PollEvent(&event))
+        {
+            switch(event.type)
+            {
+            case SDL_QUIT:
+                running = 0;
+                break;
+            case SDL_KEYDOWN:
+                if(!event.key.repeat)
+                    keyboard_func(event.key.keysym.sym, 1);
+                break;
+            case SDL_KEYUP:
+                if(!event.key.repeat)
+                    keyboard_func(event.key.keysym.sym, 0);
+                break;
+            case SDL_MOUSEMOTION:
+                mouse_motion_func(event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel);
+                break;
+            case SDL_MOUSEBUTTONDOWN:
+                mouse_button_func(event.button.button, 1);
+                break;
+            case SDL_MOUSEBUTTONUP:
+                mouse_button_func(event.button.button, 0);
+                break;
+            case SDL_MOUSEWHEEL:
+                mouse_wheel_func(event.wheel.y);
+                break;
+            case SDL_WINDOWEVENT:
+                if(event.window.event = SDL_WINDOWEVENT_RESIZED)
+                {
+                    int x, y;
+                    SDL_GetWindowSize(g_window, &x, &y);
+                    Resize(x, y);
+                }
+                break;
+            }
+        }
+
+        Render();
+
+    }
+
+    SDL_DestroyWindow(g_window);
+
+    SDL_Quit();
 
     return 0;
 }
