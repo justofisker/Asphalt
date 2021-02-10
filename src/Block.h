@@ -1,13 +1,18 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
-#define BLOCK_AIR   0
-#define BLOCK_GRASS 1
-#define BLOCK_DIRT  2
-#define BLOCK_STONE 3
-#define BLOCK_WATER 4
-#define BLOCK_SAND  5
-#define BLOCK_COUNT 6
+#include <stdint.h>
+
+typedef enum _BlockId
+{
+    BLOCKID_AIR = 0,
+    BLOCKID_GRASS,
+    BLOCKID_DIRT,
+    BLOCKID_STONE,
+    BLOCKID_WATER,
+    BLOCKID_SAND,
+    BLOCKID_COUNT
+} BlockId;
 
 typedef enum _BlockSide
 {
@@ -27,15 +32,25 @@ typedef enum _BlockFlags
     BLOCKFLAG_FLUID_MOVEMENT = 4,
 } BlockFlags;
 
-typedef struct _Block
+typedef struct _BlockInfo
 {
     unsigned int tex_pos[6][2];
     int flags;
     char *name;
+} BlockInfo;
+
+typedef struct _Block
+{
+    uint16_t id;
+    uint8_t data;
 } Block;
 
+/* Data 
+    0 - 3 Light Data
+    4 - 7 ?
+*/
 
-Block* get_block(short id);
+BlockInfo* get_block_info(short id);
 
 void setup_blocks();
 

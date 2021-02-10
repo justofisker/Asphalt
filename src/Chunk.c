@@ -146,6 +146,7 @@ Chunk *create_chunk(int _x, int _y)
     chunk->transparent_index_buffer = 0;
     chunk->locked = 0;
 
+    memset(chunk->blocks, 0, sizeof(chunk->blocks));
     int x,y, z;
     for(x = 0; x < CHUNK_SIZE_XZ; ++x)
     {
@@ -158,12 +159,14 @@ Chunk *create_chunk(int _x, int _y)
                 (perlin2d(act_x, act_z, 0.02f, 5) * 20)
                 + (perlin2d(act_x, act_z, 0.0044, 2) * 100)
             ), 1);
-            chunk->blocks[x][act_y - 1][z] = act_y > 55 ? BLOCK_GRASS : BLOCK_SAND;
+            chunk->blocks[x][act_y - 1][z] = (Block){ act_y > 55 ? BLOCKID_GRASS : BLOCKID_SAND, 0 };
             for(y = act_y - 2; y >= 0; y--)
-                chunk->blocks[x][y][z]= y > 20 ? BLOCK_DIRT : BLOCK_STONE;
+                chunk->blocks[x][y][z]= (Block){  act_y - 5 < y ? BLOCKID_DIRT : BLOCKID_STONE, 0 };
+            for(y = act_y; y < CHUNK_SIZE_Y; y++)
+                chunk->blocks[x][y][z] = (Block){ 0, 0 };
             for(y = 0; y < 55; y++)
-                if(!chunk->blocks[x][y][z])
-                    chunk->blocks[x][y][z] = BLOCK_WATER;
+                if(!chunk->blocks[x][y][z].id)
+                    chunk->blocks[x][y][z] = (Block){ BLOCKID_WATER, 0, };
         }
     }
 
@@ -184,10 +187,12 @@ void populate_chunk_mesh_buffers(Chunk *chunk)
     chunk->solid_index_buffer = 0;
     chunk->transparent_vertex_buffer = 0;
     chunk->transparent_index_buffer = 0;
+    char faces_needed[CHUNK_SIZE_XZ][CHUNK_SIZE_Y][CHUNK_SIZE_XZ] = { 0 };
 
     // Solid Mesh
     {
         int face_count = 0;
+
 
         int x, y, z, i;
         for(x = 0; x < CHUNK_SIZE_XZ; x++)
@@ -196,20 +201,62 @@ void populate_chunk_mesh_buffers(Chunk *chunk)
             {
                 for(z = 0; z < CHUNK_SIZE_XZ; z++)
                 {
-                    if((get_block(chunk->blocks[x][y][z])->flags & BLOCKFLAG_TRANSPARENT) == 0)
+                    if((get_block_info(chunk->blocks[x][y][z].id)->flags & BLOCKFLAG_TRANSPARENT) == 0)
                     {
-                        char north = z + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x, chunk->y + 1) ? get_block(get_chunk(chunk->x, chunk->y + 1)->blocks[x][y][0]                )->flags & BLOCKFLAG_TRANSPARENT != 0 : 1) : get_block(chunk->blocks[x][y][z + 1])->flags & BLOCKFLAG_TRANSPARENT != 0;
-                        char south = z - 1 ==            -1 ? (get_chunk(chunk->x, chunk->y - 1) ? get_block(get_chunk(chunk->x, chunk->y - 1)->blocks[x][y][CHUNK_SIZE_XZ - 1])->flags & BLOCKFLAG_TRANSPARENT != 0 : 1) : get_block(chunk->blocks[x][y][z - 1])->flags & BLOCKFLAG_TRANSPARENT != 0;
-                        char west  = x - 1 ==            -1 ? (get_chunk(chunk->x - 1, chunk->y) ? get_block(get_chunk(chunk->x - 1, chunk->y)->blocks[CHUNK_SIZE_XZ - 1][y][z])->flags & BLOCKFLAG_TRANSPARENT != 0 : 1) : get_block(chunk->blocks[x - 1][y][z])->flags & BLOCKFLAG_TRANSPARENT != 0;
-                        char east  = x + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x + 1, chunk->y) ? get_block(get_chunk(chunk->x + 1, chunk->y)->blocks[0][y][z]                )->flags & BLOCKFLAG_TRANSPARENT != 0 : 1) : get_block(chunk->blocks[x + 1][y][z])->flags & BLOCKFLAG_TRANSPARENT != 0;
-                        char up    = y + 1 ==  CHUNK_SIZE_Y ? 1 : get_block(chunk->blocks[x][y + 1][z])->flags & BLOCKFLAG_TRANSPARENT != 0;
-                        char down  = y - 1 ==            -1 ? 1 : get_block(chunk->blocks[x][y - 1][z])->flags & BLOCKFLAG_TRANSPARENT != 0;
-                        face_count += north;
-                        face_count += south;
-                        face_count += west;
-                        face_count += east;
-                        face_count += up;
-                        face_count += down;
+                        char north;
+                        if(z + 1 == CHUNK_SIZE_XZ)
+                        {
+                            if(get_chunk(chunk->x, chunk->y + 1))
+                                north = get_block_info(get_chunk(chunk->x, chunk->y + 1)->blocks[x][y][0].id)->flags & BLOCKFLAG_TRANSPARENT != 0;
+                            else 
+                                north = 1;
+                        } else
+                            north = get_block_info(chunk->blocks[x][y][z + 1].id)->flags & BLOCKFLAG_TRANSPARENT != 0;
+                        
+                        char south;
+                        if(z - 1 == -1)
+                        {
+                            if(get_chunk(chunk->x, chunk->y - 1))
+                                south = get_block_info(get_chunk(chunk->x, chunk->y - 1)->blocks[x][y][CHUNK_SIZE_XZ - 1].id)->flags & BLOCKFLAG_TRANSPARENT != 0;
+                            else
+                                south = 1;
+                        } else
+                            south = get_block_info(chunk->blocks[x][y][z - 1].id)->flags & BLOCKFLAG_TRANSPARENT != 0;
+                        char west;
+                        if(x - 1 == -1)
+                        {
+                            if(get_chunk(chunk->x - 1, chunk->y))
+                                west = get_block_info(get_chunk(chunk->x - 1, chunk->y)->blocks[CHUNK_SIZE_XZ - 1][y][z].id)->flags & BLOCKFLAG_TRANSPARENT != 0;
+                            else
+                                west = 1;
+                        } else
+                            west = get_block_info(chunk->blocks[x - 1][y][z].id)->flags & BLOCKFLAG_TRANSPARENT != 0;
+                        char east;
+                        if(x + 1 == CHUNK_SIZE_XZ)
+                        {
+                            if(get_chunk(chunk->x + 1, chunk->y))
+                                east =  get_block_info(get_chunk(chunk->x + 1, chunk->y)->blocks[0][y][z].id)->flags & BLOCKFLAG_TRANSPARENT != 0;
+                            else
+                                east = 1;
+                        } else
+                            east = get_block_info(chunk->blocks[x + 1][y][z].id)->flags & BLOCKFLAG_TRANSPARENT != 0;
+                        char up;
+                        if(y + 1 == CHUNK_SIZE_Y)
+                            up = 1;
+                        else
+                            up = get_block_info(chunk->blocks[x][y + 1][z].id)->flags & BLOCKFLAG_TRANSPARENT != 0;
+                        char down;
+                        if(y - 1 == -1)
+                            down = 1;
+                        else
+                            down = get_block_info(chunk->blocks[x][y - 1][z].id)->flags & BLOCKFLAG_TRANSPARENT != 0;
+                        face_count += north + south + west + east + up + down;
+                        faces_needed[x][y][z] = (north ? (1 << BLOCKSIDE_NORTH) : 0)
+                                              | (east  ? (1 << BLOCKSIDE_EAST ) : 0)
+                                              | (south ? (1 << BLOCKSIDE_SOUTH) : 0)
+                                              | (west  ? (1 << BLOCKSIDE_WEST ) : 0)
+                                              | (up    ? (1 << BLOCKSIDE_UP   ) : 0)
+                                              | (down  ? (1 << BLOCKSIDE_DOWN ) : 0);
                     }
                 }
             }
@@ -227,68 +274,62 @@ void populate_chunk_mesh_buffers(Chunk *chunk)
             {
                 for(z = 0; z < CHUNK_SIZE_XZ; z++)
                 {
-                    if((get_block(chunk->blocks[x][y][z])->flags & BLOCKFLAG_TRANSPARENT) == 0)
+                    if((get_block_info(chunk->blocks[x][y][z].id)->flags & BLOCKFLAG_TRANSPARENT) == 0)
                     {
-                        char north = z + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x, chunk->y + 1) ? get_block(get_chunk(chunk->x, chunk->y + 1)->blocks[x][y][0]                )->flags & BLOCKFLAG_TRANSPARENT != 0 : 1) : get_block(chunk->blocks[x][y][z + 1])->flags & BLOCKFLAG_TRANSPARENT != 0;
-                        char south = z - 1 ==            -1 ? (get_chunk(chunk->x, chunk->y - 1) ? get_block(get_chunk(chunk->x, chunk->y - 1)->blocks[x][y][CHUNK_SIZE_XZ - 1])->flags & BLOCKFLAG_TRANSPARENT != 0 : 1) : get_block(chunk->blocks[x][y][z - 1])->flags & BLOCKFLAG_TRANSPARENT != 0;
-                        char west  = x - 1 ==            -1 ? (get_chunk(chunk->x - 1, chunk->y) ? get_block(get_chunk(chunk->x - 1, chunk->y)->blocks[CHUNK_SIZE_XZ - 1][y][z])->flags & BLOCKFLAG_TRANSPARENT != 0 : 1) : get_block(chunk->blocks[x - 1][y][z])->flags & BLOCKFLAG_TRANSPARENT != 0;
-                        char east  = x + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x + 1, chunk->y) ? get_block(get_chunk(chunk->x + 1, chunk->y)->blocks[0][y][z]                )->flags & BLOCKFLAG_TRANSPARENT != 0 : 1) : get_block(chunk->blocks[x + 1][y][z])->flags & BLOCKFLAG_TRANSPARENT != 0;
-                        char up    = y + 1 ==  CHUNK_SIZE_Y ? 1 : get_block(chunk->blocks[x][y + 1][z])->flags & BLOCKFLAG_TRANSPARENT != 0;
-                        char down  = y - 1 ==            -1 ? 1 : get_block(chunk->blocks[x][y - 1][z])->flags & BLOCKFLAG_TRANSPARENT != 0;
+                        BlockInfo* block_info = get_block_info(chunk->blocks[x][y][z].id);
 
-                        Block* block = get_block(chunk->blocks[x][y][z]);
-                        if(!block)
+                        if(!block_info)
                         {
                             printf("MISSING BLOCK INFO %d\n", chunk->blocks[x][y][z]);
                             continue;
                         }
 
-                        if(south)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_SOUTH))
                         {
-                            verticies[offset + 0] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][1] + 0)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
-                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][1] + 1)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
-                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][1] + 1)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
-                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][1] + 0)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
+                            verticies[offset + 0] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][1] + 0)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
+                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][1] + 1)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
+                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][1] + 1)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
+                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][1] + 0)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
                             offset += 4;
                         }
-                        if(east)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_EAST))
                         {
-                            verticies[offset + 0] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][1] + 1)  ,  1.0f,  0.0f,  0.0f}; // EAST
-                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][1] + 1)  ,  1.0f,  0.0f,  0.0f}; // EAST
-                            verticies[offset + 2] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][1] + 0)  ,  1.0f,  0.0f,  0.0f}; // EAST
-                            verticies[offset + 3] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][1] + 0)  ,  1.0f,  0.0f,  0.0f}; // EAST
+                            verticies[offset + 0] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][1] + 1)  ,  1.0f,  0.0f,  0.0f}; // EAST
+                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][1] + 1)  ,  1.0f,  0.0f,  0.0f}; // EAST
+                            verticies[offset + 2] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][1] + 0)  ,  1.0f,  0.0f,  0.0f}; // EAST
+                            verticies[offset + 3] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][1] + 0)  ,  1.0f,  0.0f,  0.0f}; // EAST
                             offset += 4;
                         }
-                        if(north)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_NORTH))
                         {
-                            verticies[offset + 0] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][1] + 1)  ,  0.0f,  0.0f,  1.0f}; // NORTH
-                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][1] + 1)  ,  0.0f,  0.0f,  1.0f}; // NORTH
-                            verticies[offset + 2] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][1] + 0)  ,  0.0f,  0.0f,  1.0f}; // NORTH
-                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][1] + 0)  ,  0.0f,  0.0f,  1.0f}; // NORTH
+                            verticies[offset + 0] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][1] + 1)  ,  0.0f,  0.0f,  1.0f}; // NORTH
+                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][1] + 1)  ,  0.0f,  0.0f,  1.0f}; // NORTH
+                            verticies[offset + 2] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][1] + 0)  ,  0.0f,  0.0f,  1.0f}; // NORTH
+                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][1] + 0)  ,  0.0f,  0.0f,  1.0f}; // NORTH
                             offset += 4;
                         }
-                        if(west)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_WEST))
                         {
-                            verticies[offset + 0] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][1] + 0)  , -1.0f,  0.0f,  0.0f}; // WEST
-                            verticies[offset + 1] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][1] + 1)  , -1.0f,  0.0f,  0.0f}; // WEST
-                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][1] + 1)  , -1.0f,  0.0f,  0.0f}; // WEST
-                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][1] + 0)  , -1.0f,  0.0f,  0.0f}; // WEST
+                            verticies[offset + 0] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][1] + 0)  , -1.0f,  0.0f,  0.0f}; // WEST
+                            verticies[offset + 1] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][1] + 1)  , -1.0f,  0.0f,  0.0f}; // WEST
+                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][1] + 1)  , -1.0f,  0.0f,  0.0f}; // WEST
+                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][1] + 0)  , -1.0f,  0.0f,  0.0f}; // WEST
                             offset += 4;
                         }
-                        if(up)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_UP))
                         {
-                            verticies[offset + 0] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
-                            verticies[offset + 1] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
-                            verticies[offset + 2] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
-                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 0] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 1] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 2] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
                             offset += 4;
                         }
-                        if(down)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_DOWN))
                         {
-                            verticies[offset + 0] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][1] + 1)  ,  0.0f, -1.0f,  0.0f}; // DOWN
-                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][1] + 0)  ,  0.0f, -1.0f,  0.0f}; // DOWN
-                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][1] + 0)  ,  0.0f, -1.0f,  0.0f}; // DOWN
-                            verticies[offset + 3] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][1] + 1)  ,  0.0f, -1.0f,  0.0f}; // DOWN
+                            verticies[offset + 0] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][1] + 1)  ,  0.0f, -1.0f,  0.0f}; // DOWN
+                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][1] + 0)  ,  0.0f, -1.0f,  0.0f}; // DOWN
+                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][1] + 0)  ,  0.0f, -1.0f,  0.0f}; // DOWN
+                            verticies[offset + 3] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][1] + 1)  ,  0.0f, -1.0f,  0.0f}; // DOWN
                             offset += 4;
                         }
                     }
@@ -321,20 +362,51 @@ void populate_chunk_mesh_buffers(Chunk *chunk)
             {
                 for(z = 0; z < CHUNK_SIZE_XZ; z++)
                 {
-                    if(chunk->blocks[x][y][z] && (get_block(chunk->blocks[x][y][z])->flags & BLOCKFLAG_TRANSPARENT) != 0)
+                    if(chunk->blocks[x][y][z].id && (get_block_info(chunk->blocks[x][y][z].id)->flags & BLOCKFLAG_TRANSPARENT) != 0)
                     {
-                        char north = z + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x, chunk->y + 1) ? get_chunk(chunk->x, chunk->y + 1)->blocks[x][y][0]                 == 0 : 0) : chunk->blocks[x][y][z + 1] == 0;
-                        char south = z - 1 ==            -1 ? (get_chunk(chunk->x, chunk->y - 1) ? get_chunk(chunk->x, chunk->y - 1)->blocks[x][y][CHUNK_SIZE_XZ - 1] == 0 : 0) : chunk->blocks[x][y][z - 1] == 0;
-                        char west  = x - 1 ==            -1 ? (get_chunk(chunk->x - 1, chunk->y) ? get_chunk(chunk->x - 1, chunk->y)->blocks[CHUNK_SIZE_XZ - 1][y][z] == 0 : 0) : chunk->blocks[x - 1][y][z] == 0;
-                        char east  = x + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x + 1, chunk->y) ? get_chunk(chunk->x + 1, chunk->y)->blocks[0][y][z]                 == 0 : 0) : chunk->blocks[x + 1][y][z] == 0;
-                        char up    = y + 1 ==  CHUNK_SIZE_Y ? 1 : chunk->blocks[x][y + 1][z] == 0;
-                        char down  = y - 1 ==            -1 ? 1 : chunk->blocks[x][y - 1][z] == 0;
-                        face_count += north;
-                        face_count += south;
-                        face_count += west;
-                        face_count += east;
-                        face_count += up;
-                        face_count += down;
+                        char north;
+                        if(z + 1 == CHUNK_SIZE_XZ)
+                        {
+                            if(get_chunk(chunk->x, chunk->y + 1))
+                                north = get_chunk(chunk->x, chunk->y + 1)->blocks[x][y][0].id == 0;
+                            else north = 0;
+                        } else north = chunk->blocks[x][y][z + 1].id == 0;
+                        char south;
+                        if(z - 1 == -1)
+                        {
+                            if(get_chunk(chunk->x, chunk->y - 1))
+                                south = get_chunk(chunk->x, chunk->y - 1)->blocks[x][y][CHUNK_SIZE_XZ - 1].id == 0;
+                            else south = 0;
+                        } else south = chunk->blocks[x][y][z - 1].id == 0;
+                        char west;
+                        if(x - 1 == -1)
+                        {
+                            if(get_chunk(chunk->x - 1, chunk->y))
+                                west = get_chunk(chunk->x - 1, chunk->y)->blocks[CHUNK_SIZE_XZ - 1][y][z].id == 0;
+                            else west = 0;
+                        } else west = chunk->blocks[x - 1][y][z].id == 0;
+                        char east;
+                        if(x + 1 == CHUNK_SIZE_XZ)
+                        {
+                            if(get_chunk(chunk->x + 1, chunk->y))
+                                east = get_chunk(chunk->x + 1, chunk->y)->blocks[0][y][z].id                 == 0;
+                            else east = 0;
+                        } else east = chunk->blocks[x + 1][y][z].id == 0;;
+                        char up;
+                        if(y + 1 ==  CHUNK_SIZE_Y)
+                            up = 0;
+                        else up = chunk->blocks[x][y + 1][z].id == 0; 
+                        char down;
+                        if(y - 1 == -1)
+                            down = 1;
+                        else down = chunk->blocks[x][y - 1][z].id == 0;
+                        face_count += north + south + west + east + up + down;
+                        faces_needed[x][y][z] = (north ? (1 << BLOCKSIDE_NORTH) : 0)
+                                              | (east  ? (1 << BLOCKSIDE_EAST ) : 0)
+                                              | (south ? (1 << BLOCKSIDE_SOUTH) : 0)
+                                              | (west  ? (1 << BLOCKSIDE_WEST ) : 0)
+                                              | (up    ? (1 << BLOCKSIDE_UP   ) : 0)
+                                              | (down  ? (1 << BLOCKSIDE_DOWN ) : 0);
                     }
                 }
             }
@@ -352,68 +424,61 @@ void populate_chunk_mesh_buffers(Chunk *chunk)
             {
                 for(z = 0; z < CHUNK_SIZE_XZ; z++)
                 {
-                    if(chunk->blocks[x][y][z] && (get_block(chunk->blocks[x][y][z])->flags & BLOCKFLAG_TRANSPARENT) != 0)
+                    if(chunk->blocks[x][y][z].id && (get_block_info(chunk->blocks[x][y][z].id)->flags & BLOCKFLAG_TRANSPARENT) != 0)
                     {
-                        char north = z + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x, chunk->y + 1) ? get_chunk(chunk->x, chunk->y + 1)->blocks[x][y][0]                 == 0 : 0) : chunk->blocks[x][y][z + 1] == 0;
-                        char south = z - 1 ==            -1 ? (get_chunk(chunk->x, chunk->y - 1) ? get_chunk(chunk->x, chunk->y - 1)->blocks[x][y][CHUNK_SIZE_XZ - 1] == 0 : 0) : chunk->blocks[x][y][z - 1] == 0;
-                        char west  = x - 1 ==            -1 ? (get_chunk(chunk->x - 1, chunk->y) ? get_chunk(chunk->x - 1, chunk->y)->blocks[CHUNK_SIZE_XZ - 1][y][z] == 0 : 0) : chunk->blocks[x - 1][y][z] == 0;
-                        char east  = x + 1 == CHUNK_SIZE_XZ ? (get_chunk(chunk->x + 1, chunk->y) ? get_chunk(chunk->x + 1, chunk->y)->blocks[0][y][z]                 == 0 : 0) : chunk->blocks[x + 1][y][z] == 0;
-                        char up    = y + 1 ==  CHUNK_SIZE_Y ? 1 : chunk->blocks[x][y + 1][z] == 0;
-                        char down  = y - 1 ==            -1 ? 1 : chunk->blocks[x][y - 1][z] == 0;
-
-                        Block* block = get_block(chunk->blocks[x][y][z]);
-                        if(!block)
+                        BlockInfo* block_info = get_block_info(chunk->blocks[x][y][z].id);
+                        if(!block_info)
                         {
                             printf("MISSING BLOCK INFO %d\n", chunk->blocks[x][y][z]);
                             continue;
                         }
 
-                        if(south)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_SOUTH))
                         {
-                            verticies[offset + 0] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][1] + 0)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
-                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][1] + 1)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
-                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][1] + 1)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
-                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_SOUTH][1] + 0)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
+                            verticies[offset + 0] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][1] + 0)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
+                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][1] + 1)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
+                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][1] + 1)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
+                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_SOUTH][1] + 0)  ,  0.0f,  0.0f, -1.0f}; // SOUTH
                             offset += 4;
                         }
-                        if(east)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_EAST))
                         {
-                            verticies[offset + 0] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][1] + 1)  ,  1.0f,  0.0f,  0.0f}; // EAST
-                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][1] + 1)  ,  1.0f,  0.0f,  0.0f}; // EAST
-                            verticies[offset + 2] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][1] + 0)  ,  1.0f,  0.0f,  0.0f}; // EAST
-                            verticies[offset + 3] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_EAST][1] + 0)  ,  1.0f,  0.0f,  0.0f}; // EAST
+                            verticies[offset + 0] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][1] + 1)  ,  1.0f,  0.0f,  0.0f}; // EAST
+                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][1] + 1)  ,  1.0f,  0.0f,  0.0f}; // EAST
+                            verticies[offset + 2] = (Vertex){1.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][1] + 0)  ,  1.0f,  0.0f,  0.0f}; // EAST
+                            verticies[offset + 3] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_EAST][1] + 0)  ,  1.0f,  0.0f,  0.0f}; // EAST
                             offset += 4;
                         }
-                        if(north)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_NORTH))
                         {
-                            verticies[offset + 0] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][1] + 1)  ,  0.0f,  0.0f,  1.0f}; // NORTH
-                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][1] + 1)  ,  0.0f,  0.0f,  1.0f}; // NORTH
-                            verticies[offset + 2] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][1] + 0)  ,  0.0f,  0.0f,  1.0f}; // NORTH
-                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_NORTH][1] + 0)  ,  0.0f,  0.0f,  1.0f}; // NORTH
+                            verticies[offset + 0] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][1] + 1)  ,  0.0f,  0.0f,  1.0f}; // NORTH
+                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][1] + 1)  ,  0.0f,  0.0f,  1.0f}; // NORTH
+                            verticies[offset + 2] = (Vertex){1.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][1] + 0)  ,  0.0f,  0.0f,  1.0f}; // NORTH
+                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_NORTH][1] + 0)  ,  0.0f,  0.0f,  1.0f}; // NORTH
                             offset += 4;
                         }
-                        if(west)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_WEST))
                         {
-                            verticies[offset + 0] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][1] + 0)  , -1.0f,  0.0f,  0.0f}; // WEST
-                            verticies[offset + 1] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][1] + 1)  , -1.0f,  0.0f,  0.0f}; // WEST
-                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][1] + 1)  , -1.0f,  0.0f,  0.0f}; // WEST
-                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_WEST][1] + 0)  , -1.0f,  0.0f,  0.0f}; // WEST
+                            verticies[offset + 0] = (Vertex){0.0f + x, 1.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][1] + 0)  , -1.0f,  0.0f,  0.0f}; // WEST
+                            verticies[offset + 1] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][1] + 1)  , -1.0f,  0.0f,  0.0f}; // WEST
+                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][1] + 1)  , -1.0f,  0.0f,  0.0f}; // WEST
+                            verticies[offset + 3] = (Vertex){0.0f + x, 1.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_WEST][1] + 0)  , -1.0f,  0.0f,  0.0f}; // WEST
                             offset += 4;
                         }
-                        if(up)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_UP))
                         {
-                            verticies[offset + 0] = (Vertex){1.0f + x, 0.9f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
-                            verticies[offset + 1] = (Vertex){1.0f + x, 0.9f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
-                            verticies[offset + 2] = (Vertex){0.0f + x, 0.9f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
-                            verticies[offset + 3] = (Vertex){0.0f + x, 0.9f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 0] = (Vertex){1.0f + x, 0.9f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 1] = (Vertex){1.0f + x, 0.9f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][1] + 1) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 2] = (Vertex){0.0f + x, 0.9f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
+                            verticies[offset + 3] = (Vertex){0.0f + x, 0.9f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_UP][1] + 0) ,  0.0f,  1.0f,  0.0f}; // UP
                             offset += 4;
                         }
-                        if(down)
+                        if(faces_needed[x][y][z] & (1 << BLOCKSIDE_DOWN))
                         {
-                            verticies[offset + 0] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][1] + 1)  ,  0.0f, -1.0f,  0.0f}; // DOWN
-                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][1] + 0)  ,  0.0f, -1.0f,  0.0f}; // DOWN
-                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][1] + 0)  ,  0.0f, -1.0f,  0.0f}; // DOWN
-                            verticies[offset + 3] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block->tex_pos[BLOCKSIDE_DOWN][1] + 1)  ,  0.0f, -1.0f,  0.0f}; // DOWN
+                            verticies[offset + 0] = (Vertex){1.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][1] + 1)  ,  0.0f, -1.0f,  0.0f}; // DOWN
+                            verticies[offset + 1] = (Vertex){1.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][0] + 1), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][1] + 0)  ,  0.0f, -1.0f,  0.0f}; // DOWN
+                            verticies[offset + 2] = (Vertex){0.0f + x, 0.0f + y, 1.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][1] + 0)  ,  0.0f, -1.0f,  0.0f}; // DOWN
+                            verticies[offset + 3] = (Vertex){0.0f + x, 0.0f + y, 0.0f + z  ,  TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][0] + 0), 1.0f - TEX_CELL_SIZE_XY * (block_info->tex_pos[BLOCKSIDE_DOWN][1] + 1)  ,  0.0f, -1.0f,  0.0f}; // DOWN
                             offset += 4;
                         }
                     }
@@ -610,17 +675,17 @@ void render_chunk(Chunk *chunk, char transparent)
     glBindVertexArray(0);
 }
 
-short get_block_id_at(int x, int y, int z)
+unsigned int get_block_id_at(int x, int y, int z)
 {
     if(y < 0 || y >= CHUNK_SIZE_Y)
         return 0;
     Chunk *chunk = get_chunk(floorf((float)x / CHUNK_SIZE_XZ), floorf((float)z / CHUNK_SIZE_XZ));
     if(!chunk)
         return 0;
-    return chunk->blocks[mod(x, CHUNK_SIZE_XZ)][y][mod(z, CHUNK_SIZE_XZ)];
+    return chunk->blocks[mod(x, CHUNK_SIZE_XZ)][y][mod(z, CHUNK_SIZE_XZ)].id;
 }
 
-void set_block_at(int x, int y, int z, short block)
+void set_block_id_at(int x, int y, int z, unsigned int block)
 {
     if(y < 0 || y >= CHUNK_SIZE_Y)
         return;
@@ -631,34 +696,31 @@ void set_block_at(int x, int y, int z, short block)
         return;
     x = mod(x, CHUNK_SIZE_XZ);
     z = mod(z, CHUNK_SIZE_XZ);
-    if (chunk->blocks[x][y][z] != block)
+    chunk->blocks[x][y][z] = (Block){ block, 0, NULL };
+    regenerate_chunk_mesh(chunk);
+    if(x == 0)
     {
-        chunk->blocks[x][y][z] = block;
-        regenerate_chunk_mesh(chunk);
-        if(x == 0)
-        {
-            chunk = get_chunk(chunk_x - 1, chunk_y);
-            if(chunk)
-                regenerate_chunk_mesh(chunk);
-        }
-        else if(x == CHUNK_SIZE_XZ - 1)
-        {
-            chunk = get_chunk(chunk_x + 1, chunk_y);
-            if(chunk)
-                regenerate_chunk_mesh(chunk);
-        }
-        if(z == 0)
-        {
-            chunk = get_chunk(chunk_x, chunk_y - 1);
-            if(chunk)
-                regenerate_chunk_mesh(chunk);
-        }
-        else if(z == CHUNK_SIZE_XZ - 1)
-        {
-            chunk = get_chunk(chunk_x, chunk_y + 1);
-            if(chunk)
-                regenerate_chunk_mesh(chunk);
-        }
+        chunk = get_chunk(chunk_x - 1, chunk_y);
+        if(chunk)
+            regenerate_chunk_mesh(chunk);
+    }
+    else if(x == CHUNK_SIZE_XZ - 1)
+    {
+        chunk = get_chunk(chunk_x + 1, chunk_y);
+        if(chunk)
+            regenerate_chunk_mesh(chunk);
+    }
+    if(z == 0)
+    {
+        chunk = get_chunk(chunk_x, chunk_y - 1);
+        if(chunk)
+            regenerate_chunk_mesh(chunk);
+    }
+    else if(z == CHUNK_SIZE_XZ - 1)
+    {
+        chunk = get_chunk(chunk_x, chunk_y + 1);
+        if(chunk)
+            regenerate_chunk_mesh(chunk);
     }
 }
 
