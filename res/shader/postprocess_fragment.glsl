@@ -9,9 +9,9 @@ uniform bool u_bFog;
 uniform vec3 u_SkyColor;
 uniform int u_ScreenWidth;
 uniform int u_ScreenHeight;
-uniform int u_FogNear = 300;
-uniform int u_FogFar = 700;
-uniform int u_FogExponent = 5;
+uniform int u_FogNear = 120;
+uniform int u_FogFar = 180;
+uniform int u_FogExponent = 2;
 
 in vec2 UV;
 
