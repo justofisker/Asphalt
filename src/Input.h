@@ -6,23 +6,20 @@ typedef enum _MouseMode {
     MOUSEMODE_CAPTURED
 } MouseMode;
 
-void keyboard_func(int key, char down);
-void mouse_motion_func(int x, int y, int rx, int ry);
-void mouse_button_func(int button, char down);
-void mouse_wheel_func(int direction);
+void Input_HandleKeyboard(int key, char down);
+void Input_HandleMouseMotion(int x, int y, int rx, int ry);
+void Input_HandleMouseButton(int button, char down);
+void Input_HandleMouseWheel(int direction);
 
-char is_key_pressed(int key);
-char is_key_just_pressed(int key);
-char is_special_pressed(int key);
-char is_special_just_pressed(int key);
-int is_mouse_button_pressed(int button);
-int is_mouse_button_just_pressed(int button);
-void get_mouse_motion(int *x, int *y);
-void set_mouse_mode(MouseMode mode);
-int get_mouse_wheel_direction();
+char Input_IsKeyPressedd(int key);
+char Input_IsKeyJustPressed(int key);
+int Input_IsMouseButtonPressed(int button);
+int Input_IsMouseButtonJustPressedd(int button);
+void Input_GetMouseMotion(int *x, int *y);
+void Input_SetMouseMode(MouseMode mode);
+int Input_GetMouseWheelDirection();
 
-void setup_input();
-void input_render_start();
-void input_render_end();
+void Input_Setup();
+void Input_RenderEnd();
 
 #endif // INPUT_H

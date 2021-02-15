@@ -13,14 +13,14 @@ typedef struct _Font {
     unsigned int size;
 } Font;
 
-void setup_textrenderer();
+void Text_Setup();
 
-void begin_create_font();
-Font *create_font(char *font_location, unsigned int size);
-void end_create_font();
+void Text_BeginCreateFont();
+Font *Text_CreateFont(char *font_location, unsigned int size);
+void Text_EndCreateFont();
 
-void free_font(Font *font);
+void Text_FreeFont(Font *font);
 
-void render_text(char *text, float x, float y, float color[4], Font *font);
+void Text_RenderText(char *text, float x, float y, float color[4], Font *font);
 
 #endif // TEXTRENDERER_H

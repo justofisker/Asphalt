@@ -27,10 +27,9 @@ Index indicies[6] = {
 
 Mesh *mesh;
 
-
 unsigned int framebuffer, textureColorbuffer, textureDepthBuffer, rbo;
 
-void render_start_postprocess()
+void PostProcess_CaptureBuffer()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glEnable(GL_DEPTH_TEST);
@@ -38,14 +37,13 @@ void render_start_postprocess()
 
 }
 
-void render_end_postprocess()
+void PostProcess_ReleaseBuffer()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
 }
 
-
-void resize_postprocess()
+void PostProcess_ResizeBuffer()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glDeleteTextures(1, &textureColorbuffer);
@@ -71,7 +69,7 @@ void resize_postprocess()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void setup_postprocess()
+void PostProcess_Setup()
 {
     // Whole Screen Rect
     mesh = malloc(sizeof(Mesh));
@@ -124,7 +122,8 @@ void setup_postprocess()
         printf("Framebuffer is not complete!\n");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-void do_postprocess(unsigned int shader, unsigned int color_slot, unsigned int depth_slot)
+
+void PostProcess_RenderToBuffer(unsigned int shader, unsigned int color_slot, unsigned int depth_slot)
 {
     glBindVertexArray(mesh->array_object);
     int u_Color = glGetUniformLocation(shader, "u_Color");

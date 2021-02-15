@@ -4,7 +4,7 @@
 
 BlockInfo blocks_info[BLOCKID_COUNT];
 
-void setup_blocks()
+void Block_Setup()
 {
 
     blocks_info[BLOCKID_AIR].tex_pos[BLOCKSIDE_NORTH][0] = 0;
@@ -34,7 +34,7 @@ void setup_blocks()
     blocks_info[BLOCKID_GRASS].tex_pos[BLOCKSIDE_UP][1]    = 0;
     blocks_info[BLOCKID_GRASS].tex_pos[BLOCKSIDE_DOWN][0]  = 2;
     blocks_info[BLOCKID_GRASS].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
-    blocks_info[BLOCKID_GRASS].flags = 0;
+    blocks_info[BLOCKID_GRASS].flags = BLOCKFLAG_NONE;
     blocks_info[BLOCKID_GRASS].name = "Grass";
 
     blocks_info[BLOCKID_DIRT].tex_pos[BLOCKSIDE_NORTH][0] = 2;
@@ -49,7 +49,7 @@ void setup_blocks()
     blocks_info[BLOCKID_DIRT].tex_pos[BLOCKSIDE_UP][1]    = 0;
     blocks_info[BLOCKID_DIRT].tex_pos[BLOCKSIDE_DOWN][0]  = 2;
     blocks_info[BLOCKID_DIRT].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
-    blocks_info[BLOCKID_DIRT].flags = 0;
+    blocks_info[BLOCKID_DIRT].flags = BLOCKFLAG_NONE;
     blocks_info[BLOCKID_DIRT].name = "Dirt";
 
     blocks_info[BLOCKID_STONE].tex_pos[BLOCKSIDE_NORTH][0] = 3;
@@ -64,7 +64,7 @@ void setup_blocks()
     blocks_info[BLOCKID_STONE].tex_pos[BLOCKSIDE_UP][1]    = 0;
     blocks_info[BLOCKID_STONE].tex_pos[BLOCKSIDE_DOWN][0]  = 3;
     blocks_info[BLOCKID_STONE].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
-    blocks_info[BLOCKID_STONE].flags = 0;
+    blocks_info[BLOCKID_STONE].flags = BLOCKFLAG_NONE;
     blocks_info[BLOCKID_STONE].name = "Stone";
 
     blocks_info[BLOCKID_WATER].tex_pos[BLOCKSIDE_NORTH][0] = 4;
@@ -94,11 +94,11 @@ void setup_blocks()
     blocks_info[BLOCKID_SAND].tex_pos[BLOCKSIDE_UP][1]    = 0;
     blocks_info[BLOCKID_SAND].tex_pos[BLOCKSIDE_DOWN][0]  = 5;
     blocks_info[BLOCKID_SAND].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
-    blocks_info[BLOCKID_SAND].flags = 0;
+    blocks_info[BLOCKID_SAND].flags = BLOCKFLAG_NONE;
     blocks_info[BLOCKID_SAND].name = "Sand";
 }
 
-BlockInfo* get_block_info(short id)
+BlockInfo* Block_GetBlockInfo(short id)
 {
     if(id >= 0 && id < BLOCKID_COUNT)
     {

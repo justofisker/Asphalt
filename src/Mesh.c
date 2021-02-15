@@ -7,7 +7,7 @@
 #include "Chunk.h"
 #include <cglm/cglm.h>
 
-void free_mesh(Mesh *mesh)
+void Mesh_FreeMesh(Mesh *mesh)
 {
     glDeleteVertexArrays(1, &mesh->array_object);
     glDeleteBuffers(1, &mesh->vertex_buffer);

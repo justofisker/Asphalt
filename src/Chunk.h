@@ -29,16 +29,16 @@ typedef struct _Chunk
     char locked;
 } Chunk;
 
-Chunk *create_chunk(int x, int y);
-void regenerate_chunk_mesh(Chunk *chunk);
-void populate_chunk_mesh_buffers(Chunk *chunk);
-void render_chunk(Chunk *chunk, char transparent);
-void free_chunk(Chunk *chunk);
+Chunk *Chunk_CreateChunk(int x, int y);
+void Chunk_RegenerateChunkMesh(Chunk *chunk);
+void Chunk_PopulateChunkMeshBuffers(Chunk *chunk);
+void Chunk_RenderChunk(Chunk *chunk, char transparent);
+void Chunk_FreeChunk(Chunk *chunk);
 
-Chunk *get_chunk(int x, int y);
-void setup_chunk_thread();
-void render_chunks();
-unsigned int get_block_id_at(int x, int y, int z);
-void set_block_id_at(int x, int y, int z, unsigned int block);
+Chunk *Chunk_GetChunk(int x, int y);
+void Chunk_SetupGenerationThread();
+void Render_RenderChunks();
+unsigned int Chunk_GetBlockIdAt(int x, int y, int z);
+void Chunk_SetBlockIdAt(int x, int y, int z, unsigned int block);
 
 #endif // CHUNK_H

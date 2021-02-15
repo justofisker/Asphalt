@@ -28,7 +28,7 @@ static Index indicies[6] = {
     2, 3, 0,
 };
 
-Sprite* create_sprite(Texture *texture)
+Sprite* Sprite_CreateSprite(Texture *texture)
 {
     Sprite *sprite = malloc(sizeof(Sprite));
 
@@ -50,7 +50,7 @@ Sprite* create_sprite(Texture *texture)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), &indicies, GL_STATIC_DRAW);
 
-        shader_program = compile_shader("res/shader/sprite_vertex.glsl", "res/shader/sprite_fragment.glsl");
+        shader_program = Util_CompileShader("res/shader/sprite_vertex.glsl", "res/shader/sprite_fragment.glsl");
 
         model_loc = glGetUniformLocation(shader_program, "u_Model");
         view_loc = glGetUniformLocation(shader_program, "u_View");
@@ -70,7 +70,7 @@ Sprite* create_sprite(Texture *texture)
     return sprite;
 }
 
-void draw_sprite(Sprite* sprite)
+void Sprite_DrawSprite(Sprite* sprite)
 {
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
@@ -78,7 +78,7 @@ void draw_sprite(Sprite* sprite)
     glBindVertexArray(vertex_array_object);
     glUseProgram(shader_program);
 
-    bind_texture(sprite->texture, 0);
+    Texture_Bind(sprite->texture, 0);
     glUniform1i(texture_loc, 0);
 
     mat4 proj = GLM_MAT4_IDENTITY_INIT;

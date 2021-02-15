@@ -18,6 +18,7 @@ int g_color_view_loc;
 int g_color_projection_loc;
 int g_color_color_loc;
 unsigned int g_color_shader;
+unsigned int g_postprocess_shader;
 Texture *g_texture;
 SDL_Window *g_window;
 int g_height = 720;

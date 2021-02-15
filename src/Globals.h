@@ -34,6 +34,7 @@ extern int g_color_view_loc;
 extern int g_color_projection_loc;
 extern int g_color_color_loc;
 extern unsigned int g_color_shader;
+extern unsigned int g_postprocess_shader;
 extern Texture *g_texture;
 extern SDL_Window *g_window;
 

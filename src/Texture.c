@@ -4,7 +4,7 @@
 #include <stb/stb_image.h>
 #include <stdio.h>
 
-Texture* create_texture(const char* file_path, int texture_min_filter, int texture_mag_filter, int texture_wrap, char mipmap, float lod_bias)
+Texture* Texture_CreateTexture(const char* file_path, int texture_min_filter, int texture_mag_filter, int texture_wrap, char mipmap, float lod_bias)
 {
     Texture *texture = malloc(sizeof(Texture));
 
@@ -38,7 +38,7 @@ Texture* create_texture(const char* file_path, int texture_min_filter, int textu
     return texture;
 }
 
-Texture* create_texture_color(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
+Texture* Texture_CreateTextureOfColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
 {
     Texture *texture = malloc(sizeof(Texture));
 
@@ -61,7 +61,7 @@ Texture* create_texture_color(unsigned char r, unsigned char g, unsigned char b,
     return texture;
 }
 
-void bind_texture(Texture* texture, unsigned int slot)
+void Texture_Bind(Texture* texture, unsigned int slot)
 {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D, texture->texture_id);

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <glad/glad.h>
 
-const char* get_file_content(const char *path, int *length)
+const char* Util_GetFileContent(const char *path, int *length)
 {
     FILE* file;
     file = fopen(path, "rb");
@@ -24,10 +24,10 @@ const char* get_file_content(const char *path, int *length)
     return content;
 }
 
-unsigned int compile_shader(const char *vertex_path, const char *fragment_path)
+unsigned int Util_CompileShader(const char *vertex_path, const char *fragment_path)
 {
     int vertex_source_length;
-    const char* vertex_source = get_file_content(vertex_path, &vertex_source_length);
+    const char* vertex_source = Util_GetFileContent(vertex_path, &vertex_source_length);
     unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex_shader, 1, &vertex_source, &vertex_source_length);
     glCompileShader(vertex_shader);
@@ -42,7 +42,7 @@ unsigned int compile_shader(const char *vertex_path, const char *fragment_path)
         printf("Vertex Shader (%s) failed to compile.\n%s\n", vertex_path, message);
     }
     int fragment_source_length;
-    const char* fragment_source = get_file_content(fragment_path, &fragment_source_length);
+    const char* fragment_source = Util_GetFileContent(fragment_path, &fragment_source_length);
     unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment_shader, 1, &fragment_source, &fragment_source_length);
     glCompileShader(fragment_shader);
@@ -76,6 +76,8 @@ unsigned int compile_shader(const char *vertex_path, const char *fragment_path)
 
 static int SEED = -1;
 
+// Following copied from https://gist.github.com/nowl/828013
+
 static int hash[] = {208,34,231,213,32,248,233,56,161,78,24,140,71,48,140,254,245,255,247,247,40,
                      185,248,251,245,28,124,204,204,76,36,1,107,28,234,163,202,224,245,128,167,204,
                      9,92,217,54,239,174,173,102,193,189,190,121,100,108,167,44,43,77,180,204,8,81,
@@ -89,25 +91,23 @@ static int hash[] = {208,34,231,213,32,248,233,56,161,78,24,140,71,48,140,254,24
                      135,176,183,191,253,115,184,21,233,58,129,233,142,39,128,211,118,137,139,255,
                      114,20,218,113,154,27,127,246,250,1,8,198,250,209,92,222,173,21,88,102,219};
 
-
-// https://gist.github.com/nowl/828013
-int noise2(int x, int y)
+static int noise2(int x, int y)
 {
     int tmp = hash[(y + SEED) % 256];
     return hash[(tmp + x) % 256];
 }
 
-float lin_inter(float x, float y, float s)
+static float lin_inter(float x, float y, float s)
 {
     return x + s * (y-x);
 }
 
-float smooth_inter(float x, float y, float s)
+static float smooth_inter(float x, float y, float s)
 {
     return lin_inter(x, y, s * s * (3-2*s));
 }
 
-float noise2d(float x, float y)
+static float noise2d(float x, float y)
 {
     int x_int = x;
     int y_int = y;
@@ -122,7 +122,9 @@ float noise2d(float x, float y)
     return smooth_inter(low, high, y_frac);
 }
 
-float perlin2d(float x, float y, float freq, int depth)
+// end https://gist.github.com/nowl/828013
+
+float Util_Perlin2D(float x, float y, float freq, int depth)
 {
     if(SEED == -1)
         SEED = rand();

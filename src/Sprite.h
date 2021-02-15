@@ -11,7 +11,7 @@ typedef struct _Sprite {
     float rotation;
 } Sprite;
 
-Sprite* create_sprite(Texture *sprite);
-void draw_sprite(Sprite *sprite);
+Sprite* Sprite_CreateSprite(Texture *sprite);
+void Sprite_DrawSprite(Sprite *sprite);
 
 #endif // SPRITE_H

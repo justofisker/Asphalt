@@ -13,6 +13,6 @@ typedef struct _Mesh
     GLenum index_type;
 } Mesh;
 
-void free_mesh(Mesh *mesh);
+void Mesh_FreeMesh(Mesh *mesh);
 
 #endif // MESH_H

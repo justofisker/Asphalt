@@ -34,8 +34,8 @@ typedef enum _BlockFlags
 
 typedef struct _BlockInfo
 {
-    unsigned int tex_pos[6][2];
-    int flags;
+    uint16_t tex_pos[6][2];
+    uint32_t flags;
     char *name;
 } BlockInfo;
 
@@ -50,8 +50,8 @@ typedef struct _Block
     4 - 7 ?
 */
 
-BlockInfo* get_block_info(short id);
+BlockInfo* Block_GetBlockInfo(short id);
 
-void setup_blocks();
+void Block_Setup();
 
 #endif // BLOCK_H

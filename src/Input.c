@@ -17,14 +17,14 @@ MouseMode mouse_mode = MOUSEMODE_CAPTURED;
 
 char in_game = 1;
 
-void keyboard_func(int key, char down)
+void Input_HandleKeyboard(int key, char down)
 {
     if(key >= 322) return;
     if(down) frame_key_states[key] = 1;
     key_states[key] = down;
 }
 
-void mouse_motion_func(int x, int y, int rx, int ry)
+void Input_HandleMouseMotion(int x, int y, int rx, int ry)
 {
     mouse_position[0] = x;
     mouse_position[1] = y;
@@ -32,63 +32,67 @@ void mouse_motion_func(int x, int y, int rx, int ry)
     mouse_motion[1] += ry;
 }
 
-void mouse_button_func(int button, char down)
+void Input_HandleMouseButton(int button, char down)
 {
     if(down) frame_mouse_button_states[button - 1] = 1;
     mouse_button_states[button - 1] = down;
 }
 
-void mouse_wheel_func(int direction)
+void Input_HandleMouseWheel(int direction)
 {
     mouse_wheel_direction = direction;
 }
 
-int get_mouse_wheel_direction()
+int Input_GetMouseWheelDirection()
 {
     return mouse_wheel_direction;
 }
 
-char is_key_pressed(int key)
+char Input_IsKeyPressedd(int key)
 {
     return key_states[key];
 }
 
-char is_key_just_pressed(int key)
+char Input_IsKeyJustPressed(int key)
 {
     return frame_key_states[key];
 }
 
-int is_mouse_button_pressed(int button)
+int Input_IsMouseButtonPressed(int button)
 {
     if(!in_game) return 0;
     if(button < 0 && button > 5) return 0;
     return mouse_button_states[button - 1];
 }
 
-int is_mouse_button_just_pressed(int button)
+int Input_IsMouseButtonJustPressedd(int button)
 {
     if(!in_game) return 0;
     if(button < 0 && button > 5) return 0;
     return frame_mouse_button_states[button - 1];
 }
 
-void get_mouse_motion(int *x, int *y)
+void Input_GetMouseMotion(int *x, int *y)
 {
     *x = mouse_motion[0];
     *y = mouse_motion[1];
 }
 
 char mouse_mode_updated = 0;
-void set_mouse_mode(MouseMode mode)
+void Input_SetMouseMode(MouseMode mode)
 {
     mouse_mode_updated = 1;
     mouse_mode = mode;
 }
 
-SDL_Cursor *cursor_arrow;
-
-void input_render_start()
+void Input_RenderEnd()
 {
+    memset(frame_key_states, 0, sizeof(frame_key_states));
+    memset(mouse_motion, 0, sizeof(mouse_motion));
+    memset(frame_mouse_button_states, 0, sizeof(frame_mouse_button_states));
+    mouse_wheel_direction = 0;
+    
+
     char focus = (SDL_GetWindowFlags(g_window) & SDL_WINDOW_INPUT_FOCUS) != 0;
 
     if(mouse_mode_updated || focus != in_game)
@@ -108,15 +112,7 @@ void input_render_start()
     }
 }
 
-void input_render_end()
-{
-    memset(frame_key_states, 0, sizeof(frame_key_states));
-    memset(mouse_motion, 0, sizeof(mouse_motion));
-    memset(frame_mouse_button_states, 0, sizeof(frame_mouse_button_states));
-    mouse_wheel_direction = 0;
-}
-
-void setup_input()
+void Input_Setup()
 {
     memset(key_states, 0, sizeof(key_states));
     memset(frame_key_states, 0, sizeof(frame_key_states));
@@ -124,4 +120,5 @@ void setup_input()
     memset(frame_mouse_button_states, 0, sizeof(frame_mouse_button_states));
     memset(mouse_motion, 0, sizeof(mouse_motion));
     memset(mouse_position, 0, sizeof(mouse_position));
+    Input_SetMouseMode(MOUSEMODE_CAPTURED);
 }

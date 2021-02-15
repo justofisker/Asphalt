@@ -18,9 +18,9 @@ typedef struct _Vertex {
 
 typedef unsigned short Index;
 
-void setup_textrenderer()
+void Text_Setup()
 {
-    text_shader = compile_shader("res/shader/text_vertex.glsl", "res/shader/text_fragment.glsl");
+    text_shader = Util_CompileShader("res/shader/text_vertex.glsl", "res/shader/text_fragment.glsl");
 
     textcolor_loc = glGetUniformLocation(text_shader, "u_TextColor");
     projection_loc = glGetUniformLocation(text_shader, "u_Projection");
@@ -45,7 +45,7 @@ void setup_textrenderer()
     glBindVertexArray(0);   
 }
 
-void begin_create_font()
+void Text_BeginCreateFont()
 {
     if(FT_Init_FreeType(&ft))
     {
@@ -54,7 +54,7 @@ void begin_create_font()
     }
 }
 
-Font *create_font(char *font_location, unsigned int size)
+Font *Text_CreateFont(char *font_location, unsigned int size)
 {
     FT_Face face;
     if(FT_New_Face(ft, font_location, 0, &face))
@@ -111,12 +111,13 @@ Font *create_font(char *font_location, unsigned int size)
 
     return font;
 }
-void end_create_font()
+
+void Text_EndCreateFont()
 {
     FT_Done_FreeType(ft);
 }
 
-void free_font(Font *font)
+void Text_FreeFont(Font *font)
 {
     int i;
     for (i = 0; i < 128; i++)
@@ -127,7 +128,7 @@ void free_font(Font *font)
     free(font);
 }
 
-void render_text(char *text, float x, float y, float color[4], Font *font)
+void Text_RenderText(char *text, float x, float y, float color[4], Font *font)
 {
     glUseProgram(text_shader);
     glUniform4fv(textcolor_loc, 1, color);
