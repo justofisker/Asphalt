@@ -36,7 +36,7 @@ elseif (WIN32)
         target_link_libraries(Asphalt "${PROJECT_SOURCE_DIR}/thirdparty/SDL2/x86_64-VS/SDL2.lib" "${PROJECT_SOURCE_DIR}/thirdparty/SDL2/x86_64-VS/SDL2main.lib")
     else (MSVC)
         target_link_libraries(Asphalt "${PROJECT_SOURCE_DIR}/thirdparty/SDL2/x86_64-w64-mingw32/lib/libSDL2.dll.a")
-        add_compile_definitions(MINGW)
+        add_compile_definitions(SDL_MAIN_HANDLED)
     endif (MSVC)
     add_custom_command(TARGET Asphalt POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy

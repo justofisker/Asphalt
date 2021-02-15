@@ -1,9 +1,6 @@
 [submodule "thirdparty/cglm"]
 	path = thirdparty/cglm
 	url = https://github.com/recp/cglm
-[submodule "thirdparty/freeGLUT"]
-	path = thirdparty/freeGLUT
-	url = https://github.com/dcnieho/freeGLUT
 [submodule "thirdparty/stb/stb"]
 	path = thirdparty/stb/stb
 	url = https://github.com/nothings/stb

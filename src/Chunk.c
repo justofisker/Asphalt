@@ -280,7 +280,7 @@ void populate_chunk_mesh_buffers(Chunk *chunk)
 
                         if(!block_info)
                         {
-                            printf("MISSING BLOCK INFO %d\n", chunk->blocks[x][y][z]);
+                            printf("MISSING BLOCK INFO %d\n", chunk->blocks[x][y][z].id);
                             continue;
                         }
 
@@ -429,7 +429,7 @@ void populate_chunk_mesh_buffers(Chunk *chunk)
                         BlockInfo* block_info = get_block_info(chunk->blocks[x][y][z].id);
                         if(!block_info)
                         {
-                            printf("MISSING BLOCK INFO %d\n", chunk->blocks[x][y][z]);
+                            printf("MISSING BLOCK INFO %d\n", chunk->blocks[x][y][z].id);
                             continue;
                         }
 
@@ -696,7 +696,7 @@ void set_block_id_at(int x, int y, int z, unsigned int block)
         return;
     x = mod(x, CHUNK_SIZE_XZ);
     z = mod(z, CHUNK_SIZE_XZ);
-    chunk->blocks[x][y][z] = (Block){ block, 0, NULL };
+    chunk->blocks[x][y][z] = (Block){ block, 0 };
     regenerate_chunk_mesh(chunk);
     if(x == 0)
     {

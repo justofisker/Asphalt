@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <glad/glad.h>
-#ifdef MINGW
-#define SDL_MAIN_HANDLED
-#endif
 #include <SDL2/SDL.h>
 #include <cglm/cglm.h>
 #include <math.h>
