@@ -29,6 +29,7 @@ typedef struct _Chunk
     char locked;
 } Chunk;
 
+void Chunk_SetChunkArraySlot(int x, int y, Chunk* chunk);
 Chunk *Chunk_CreateChunk(int x, int y);
 void Chunk_RegenerateChunkMesh(Chunk *chunk);
 void Chunk_PopulateChunkMeshBuffers(Chunk *chunk);

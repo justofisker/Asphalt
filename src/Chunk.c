@@ -32,7 +32,7 @@ int last_x = 0;
 int last_y = 0;
 static char dontGenerate = 0;
 
-static void Chunk_SetChunkArraySlot(int x, int y, Chunk* chunk)
+void Chunk_SetChunkArraySlot(int x, int y, Chunk* chunk)
 {
     Chunk *previous = chunks[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)];
     chunks[mod(x, CHUNK_ARR_SIZE)][mod(y, CHUNK_ARR_SIZE)] = chunk;
@@ -233,9 +233,10 @@ Chunk *Chunk_CreateChunk(int _x, int _y)
                 chunk->blocks[x][y][z]= (Block){  act_y - 5 < y ? BLOCKID_DIRT : BLOCKID_STONE, 0 };
             for(y = act_y; y < CHUNK_SIZE_Y; y++)
                 chunk->blocks[x][y][z] = (Block){ 0, 0 };
-            for(y = 0; y < 55; y++)
+            for(y = 1; y < 55; y++)
                 if(!chunk->blocks[x][y][z].id)
                     chunk->blocks[x][y][z] = (Block){ BLOCKID_WATER, 0, };
+            chunk->blocks[x][0][z] = (Block){ BLOCKID_BEDROCK, 0 };
         }
     }
 

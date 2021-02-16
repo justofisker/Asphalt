@@ -5,6 +5,9 @@
 #include <glad/glad.h>
 #include "Util.h"
 #include "Globals.h"
+#include <stdarg.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 static unsigned int text_shader;
 static unsigned int VAO, VB, IB;
@@ -128,8 +131,10 @@ void Text_FreeFont(Font *font)
     free(font);
 }
 
-void Text_RenderText(char *text, float x, float y, float color[4], Font *font)
+TextPos Text_RenderTextBuffer(char *text, float x, float y, float color[4], Font *font)
 {
+    y = g_height - y - font->size;
+    
     glUseProgram(text_shader);
     glUniform4fv(textcolor_loc, 1, color);
     mat4 projection;
@@ -165,4 +170,17 @@ void Text_RenderText(char *text, float x, float y, float color[4], Font *font)
     }
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    return (TextPos){x, g_height - y };
+}
+
+TextPos Text_RenderText(char *format, float x, float y, float color[4], Font *font, ...)
+{
+    static char buf[1024];
+    va_list args;
+    va_start (args, format);
+    vsprintf_s(buf, sizeof(buf), format, args );
+    va_end (args);
+
+    return Text_RenderTextBuffer(buf, x, y, color, font);
 }

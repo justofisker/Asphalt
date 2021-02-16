@@ -11,6 +11,7 @@ typedef enum _BlockId
     BLOCKID_STONE,
     BLOCKID_WATER,
     BLOCKID_SAND,
+    BLOCKID_BEDROCK,
     BLOCKID_COUNT
 } BlockId;
 

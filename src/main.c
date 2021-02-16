@@ -19,10 +19,17 @@
 #include "TextRenderer.h"
 #include "Render.h"
 
+//#if _MSC_VER && !__INTEL_COMPILER
+__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+//#endif // MSVC
+
 static char paused = 0;
 #define PLAYER_SIZE 0.2f
 #define PLAYER_HEIGHT 1.65f
 vec3 sky_color = {0.4f, 0.5f, 1.0f};
+vec3 hell_color = {0.4f, 0.0f, 0.0f};
+vec3 void_color = {0.0f, 0.0f, 0.0f};
 
 static Font *font_arial;
 
@@ -56,8 +63,36 @@ static void SetupGame()
     Text_EndCreateFont();
 
     int w, h;
-    SDL_GetWindowSize(g_window, &w, &h);
+    SDL_GL_GetDrawableSize(g_window, &w, &h);
     OnResizeGameWindow(w, h);
+
+    // Populate 5x5 chunk around play
+    int x, y;
+    for (x = -2; x <= 2; x++)
+    {
+        for(y = -2; y <= 2; y++)
+        {
+            Chunk *chunk = Chunk_CreateChunk(x, y);
+            Chunk_SetChunkArraySlot(x, y, chunk);
+            Chunk_PopulateChunkMeshBuffers(chunk);
+            chunk->create_mesh = 1;
+        }
+    }
+    
+    int z;
+    x = rand() % (16 * 5) - 2 * 16;
+    z = rand() % (16 * 5) - 2 * 16;
+    g_player_position[0] = x + 0.5f;
+    g_player_position[2] = z + 0.5f;
+
+    for(y = CHUNK_SIZE_Y; y >= 0; y--)
+    {
+        if(Chunk_GetBlockIdAt(x, y, z))
+        {
+            g_player_position[1] = y + 1;
+            break;
+        }
+    }
 }
 
 float time_passed = 0.0f;
@@ -453,11 +488,13 @@ static void Render()
         int u_ScreenWidth = glGetUniformLocation(g_postprocess_shader, "u_ScreenWidth");
         glUniform1i(u_ScreenWidth, g_width);
         int u_SkyColor = glGetUniformLocation(g_postprocess_shader, "u_SkyColor");
-        glUniform3fv(u_SkyColor, 1, sky_color);
+        glUniform3fv(u_SkyColor, 1, g_player_position[1] > 10.0f ? sky_color : void_color);
         PostProcess_RenderToBuffer(g_postprocess_shader, 0, 1);
         glDisable(GL_DEPTH_TEST);
 
+
         if(1) {
+            float text_pos = 20.f;
             frames++;
             if(time_passed >= 1.0f)
             {
@@ -466,20 +503,22 @@ static void Render()
                 time_passed -= 1.0f;
             }
 
-            char buf[256];
-            sprintf(buf, "FPS: %d", fps);
-            Text_RenderText(buf, 20, 20, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial);
+            text_pos = Text_RenderText("FPS: %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial,
+                                        fps).y;
+
+            text_pos = Text_RenderText("x: %d y: %d z: %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial,
+                                        (int)floorf(g_player_position[0]), (int)floorf(g_player_position[1]), (int)floorf(g_player_position[2])).y;
+
+            text_pos = Text_RenderText("block in hand: %s", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial,
+                                        Block_GetBlockInfo(block_selected)->name).y;
+
+            text_pos = Text_RenderText("Resolution: %d x %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial,
+                                        g_width, g_height).y;
+            
+            text_pos = Text_RenderText("%s", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial,
+                                        glGetString(GL_RENDERER)).y;
         }
-        {
-            char buf[256];
-            sprintf(buf, "x: %d y: %d z: %d", (int)floorf(g_player_position[0]), (int)floorf(g_player_position[1]), (int)floorf(g_player_position[2]));
-            Text_RenderText(buf, 20, 20 + font_arial->size, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial);
-        }
-        {
-            char buf[256];
-            sprintf(buf, "block in hand: %s", Block_GetBlockInfo(block_selected)->name);
-            Text_RenderText(buf, 20, 20 + font_arial->size * 2, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial);
-        }
+
         glEnable(GL_DEPTH_TEST);
 
         Input_RenderEnd();
@@ -501,7 +540,7 @@ int main(int argc, char *argv[])
                                 SDL_WINDOWPOS_CENTERED,
                                 SDL_WINDOWPOS_CENTERED,
                                 1280, 720,
-                                SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+                                SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
     if (g_window == NULL)
     {
@@ -541,21 +580,16 @@ int main(int argc, char *argv[])
                 running = 0;
                 break;
             case SDL_KEYDOWN:
-                if (!event.key.repeat)
-                    Input_HandleKeyboard(event.key.keysym.sym, 1);
-                break;
             case SDL_KEYUP:
                 if (!event.key.repeat)
-                    Input_HandleKeyboard(event.key.keysym.sym, 0);
+                    Input_HandleKeyboard(event.key.keysym.sym, event.key.state);
                 break;
             case SDL_MOUSEMOTION:
                 Input_HandleMouseMotion(event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel);
                 break;
             case SDL_MOUSEBUTTONDOWN:
-                Input_HandleMouseButton(event.button.button, 1);
-                break;
             case SDL_MOUSEBUTTONUP:
-                Input_HandleMouseButton(event.button.button, 0);
+                Input_HandleMouseButton(event.button.button, event.button.state);
                 break;
             case SDL_MOUSEWHEEL:
                 Input_HandleMouseWheel(event.wheel.y);
@@ -563,7 +597,9 @@ int main(int argc, char *argv[])
             case SDL_WINDOWEVENT:
                 if (event.window.event == SDL_WINDOWEVENT_RESIZED)
                 {
-                    OnResizeGameWindow(event.window.data1, event.window.data2);
+                    int w, h;
+                    SDL_GL_GetDrawableSize(g_window, &w, &h);
+                    OnResizeGameWindow(w, h);
                 }
                 break;
             }
@@ -606,6 +642,10 @@ int main(int argc, char *argv[])
                 else
                 {
                     SDL_SetWindowFullscreen(g_window, 0);
+                    // Resize Window Event not called on exiting fullscreen
+                    int w, h;
+                    SDL_GL_GetDrawableSize(g_window, &w, &h);
+                    OnResizeGameWindow(w, h);
                 }
             }
 

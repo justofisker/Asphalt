@@ -96,6 +96,21 @@ void Block_Setup()
     blocks_info[BLOCKID_SAND].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
     blocks_info[BLOCKID_SAND].flags = BLOCKFLAG_NONE;
     blocks_info[BLOCKID_SAND].name = "Sand";
+
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_NORTH][0] = 6;
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_NORTH][1] = 0;
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_EAST][0]  = 6;
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_EAST][1]  = 0;
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_SOUTH][0] = 6;
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_SOUTH][1] = 0;
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_WEST][0]  = 6;
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_WEST][1]  = 0;
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_UP][0]    = 6;
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_UP][1]    = 0;
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_DOWN][0]  = 6;
+    blocks_info[BLOCKID_BEDROCK].tex_pos[BLOCKSIDE_DOWN][1]  = 0;
+    blocks_info[BLOCKID_BEDROCK].flags = BLOCKFLAG_NONE;
+    blocks_info[BLOCKID_BEDROCK].name = "Bedrock";
 }
 
 BlockInfo* Block_GetBlockInfo(short id)

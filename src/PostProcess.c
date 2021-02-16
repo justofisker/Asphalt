@@ -33,8 +33,7 @@ void PostProcess_CaptureBuffer()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS); 
-
+    glDepthFunc(GL_LESS);
 }
 
 void PostProcess_ReleaseBuffer()
