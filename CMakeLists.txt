@@ -48,7 +48,7 @@ add_custom_command(TARGET Asphalt POST_BUILD
         ${CMAKE_SOURCE_DIR}/res/ $<TARGET_FILE_DIR:Asphalt>/res/)
 
 
-add_subdirectory("${PROJECT_SOURCE_DIR}/thirdparty/freetype2")
+add_subdirectory("${PROJECT_SOURCE_DIR}/thirdparty/freetype")
 target_link_libraries(Asphalt freetype)
         
 
@@ -56,6 +56,6 @@ target_include_directories(Asphalt PUBLIC
     "${PROJECT_SOURCE_DIR}/thirdparty/cglm/include"
     "${PROJECT_SOURCE_DIR}/thirdparty/glad/include"
     "${PROJECT_SOURCE_DIR}/thirdparty/stb"
-    "${PROJECT_SOURCE_DIR}/thirdparty/freetype2/include"
+    "${PROJECT_SOURCE_DIR}/thirdparty/freetype/include"
     "${PROJECT_SOURCE_DIR}/thirdparty/SDL2/x86_64-w64-mingw32/include"
     )
