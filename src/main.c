@@ -19,10 +19,10 @@
 #include "TextRenderer.h"
 #include "Render.h"
 
-//#if _MSC_VER && !__INTEL_COMPILER
+#if _MSC_VER && !__INTEL_COMPILER
 __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
 __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
-//#endif // MSVC
+#endif // MSVC
 
 static char paused = 0;
 #define PLAYER_SIZE 0.2f

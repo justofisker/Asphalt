@@ -179,7 +179,7 @@ TextPos Text_RenderText(char *format, float x, float y, float color[4], Font *fo
     static char buf[1024];
     va_list args;
     va_start (args, format);
-    vsprintf_s(buf, sizeof(buf), format, args );
+    vsprintf(buf, format, args );
     va_end (args);
 
     return Text_RenderTextBuffer(buf, x, y, color, font);
