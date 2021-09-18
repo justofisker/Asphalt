@@ -594,7 +594,7 @@ void Chunk_SetupGenerationThread()
 {
     memset(chunks, 0, sizeof(chunks));
     memset(chunks_to_free, 0, sizeof(chunks_to_free));
-    generation_thread = SDL_CreateThread(Chunk_AsyncGenerateChunks, "Generate Thread", (void*)NULL);
+    generation_thread = SDL_CreateThread(Chunk_AsyncGenerateChunks, "Chunk Generation", (void*)NULL);
 }
 
 void Render_RenderChunks()
