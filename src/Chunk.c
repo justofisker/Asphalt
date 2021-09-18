@@ -607,56 +607,47 @@ void Render_RenderChunks()
     Texture_Bind(g_texture, 0);
     glUniform1i(g_block_texture_loc, 0);
 
-    int x, y;
-    for(x = 0; x < CHUNK_ARR_SIZE; x++)
-    {
-        for(y = 0; y < CHUNK_ARR_SIZE; y++)
-        {
-            if(chunks_to_free[x][y])
-            {
-                Chunk_FreeChunk(chunks_to_free[x][y]);
-                chunks_to_free[x][y] = 0;
-            }
-        }
-    }
+    int x, y, stage;
 
-    for(x = 0; x < CHUNK_ARR_SIZE; x++)
-    {
-        for(y = 0; y < CHUNK_ARR_SIZE; y++)
+    for(stage = 0; stage < 4; stage++) {
+        if(stage == 3) glDisable(GL_CULL_FACE);
+        for(x = 0; x < CHUNK_ARR_SIZE; x++)
         {
-            Chunk *chunk = chunks[x][y];
-            if(chunk && chunk->create_mesh && !chunk->locked)
+            for(y = 0; y < CHUNK_ARR_SIZE; y++)
             {
-                chunk->locked = 1;
-                Chunk_PushChunkMeshBuffers(chunk);
-                chunks[x][y]->locked = 0;
-            }
-        }
-    }
-
-    for(x = 0; x < CHUNK_ARR_SIZE; x++)
-    {
-        for(y = 0; y < CHUNK_ARR_SIZE; y++)
-        {
-            Chunk *chunk = chunks[x][y];
-            if(chunk) {
-                if(chunk->mesh && chunk->mesh->index_count)
-                {
-                    Chunk_RenderChunk(chunk, 0);
-                }
-            }
-        }
-    }
-    glDisable(GL_CULL_FACE);
-    for(x = 0; x < CHUNK_ARR_SIZE; x++)
-    {
-        for(y = 0; y < CHUNK_ARR_SIZE; y++)
-        {
-            Chunk *chunk = chunks[x][y];
-            if(chunk) {
-                if(chunk->transparent_mesh && chunk->transparent_mesh->index_count)
-                {
-                    Chunk_RenderChunk(chunk, 1);
+                Chunk *chunk = chunks[x][y];
+                switch(stage) {
+                case 0:
+                    if(chunks_to_free[x][y])
+                    {
+                        Chunk_FreeChunk(chunks_to_free[x][y]);
+                        chunks_to_free[x][y] = 0;
+                    }
+                    break;
+                case 1:
+                    if(chunk && chunk->create_mesh && !chunk->locked)
+                    {
+                        chunk->locked = 1;
+                        Chunk_PushChunkMeshBuffers(chunk);
+                        chunks[x][y]->locked = 0;
+                    }
+                    break;
+                case 2:
+                    if(chunk) {
+                        if(chunk->mesh && chunk->mesh->index_count)
+                        {
+                            Chunk_RenderChunk(chunk, 0);
+                        }
+                    }
+                    break;
+                case 3:
+                    if(chunk) {
+                        if(chunk->transparent_mesh && chunk->transparent_mesh->index_count)
+                        {
+                            Chunk_RenderChunk(chunk, 1);
+                        }
+                    }
+                    break;
                 }
             }
         }
