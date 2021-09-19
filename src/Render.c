@@ -3,11 +3,20 @@
 #include <cglm/cglm.h>
 #include "Globals.h"
 #include "Mesh.h"
+#include "Block.h"
+#include "TextRenderer.h"
+#include "PostProcess.h"
+#include "Input.h"
+#include "Chunk.h"
+#include "Util.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 
 static vec3 sky_color = {0.4f, 0.5f, 1.0f};
+static vec3 hell_color = {0.4f, 0.0f, 0.0f};
+static vec3 void_color = {0.0f, 0.0f, 0.0f};
+
 static Mesh* look_block_mesh;
 
 void Render_SetupLookBlock()
@@ -115,6 +124,54 @@ void Render_End()
     }
     
     SDL_GL_SwapWindow(g_window);
+}
+
+void Render_RenderWorld()
+{
+    PostProcess_CaptureBuffer();
+    Render_Start();
+    {
+        if(g_looking_at_block) Render_RenderLookBlock(g_look_block_pos[0], g_look_block_pos[1], g_look_block_pos[2]);
+        Render_RenderChunks();
+        PostProcess_ReleaseBuffer();
+        glUseProgram(g_postprocess_shader);
+        int u_bInWater = glGetUniformLocation(g_postprocess_shader, "u_bInWater");
+        glUniform1i (u_bInWater, (Chunk_GetBlockIdAt(floorf(g_player_position[0]), floorf(g_player_position[1] + g_camera_offset[1]), floorf(g_player_position[2])) == BLOCKID_WATER) );
+        int u_ScreenHeight = glGetUniformLocation(g_postprocess_shader, "u_ScreenHeight");
+        glUniform1i(u_ScreenHeight, g_height);
+        int u_ScreenWidth = glGetUniformLocation(g_postprocess_shader, "u_ScreenWidth");
+        glUniform1i(u_ScreenWidth, g_width);
+        int u_SkyColor = glGetUniformLocation(g_postprocess_shader, "u_SkyColor");
+        glUniform3fv(u_SkyColor, 1, g_player_position[1] > 10.0f ? sky_color : void_color);
+        PostProcess_RenderToBuffer(g_postprocess_shader, 0, 1);
+        glDisable(GL_DEPTH_TEST);
+
+
+        if(1) {
+            float text_pos = 20.f;
+            
+
+            text_pos = Text_RenderText("FPS: %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial,
+                                        g_fps).y;
+
+            text_pos = Text_RenderText("x: %d y: %d z: %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial,
+                                        (int)floorf(g_player_position[0]), (int)floorf(g_player_position[1]), (int)floorf(g_player_position[2])).y;
+
+            text_pos = Text_RenderText("block in hand: %s", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial,
+                                        Block_GetBlockInfo(g_block_selected)->name).y;
+
+            text_pos = Text_RenderText("Resolution: %d x %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial,
+                                        g_width, g_height).y;
+            
+            text_pos = Text_RenderText("%s", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial,
+                                        glGetString(GL_RENDERER)).y;
+        }
+
+        glEnable(GL_DEPTH_TEST);
+
+        Input_RenderEnd();
+    }
+    Render_End();
 }
 
 void Render_Setup()

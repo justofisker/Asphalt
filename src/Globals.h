@@ -14,6 +14,8 @@ typedef struct _CameraInfo
     float fFar;
 } CameraInfo;
 
+typedef struct _Font Font;
+
 extern vec3 g_player_position;
 extern vec3 g_camera_offset;
 extern vec3 g_camera_rotation;
@@ -37,6 +39,12 @@ extern unsigned int g_color_shader;
 extern unsigned int g_postprocess_shader;
 extern Texture *g_texture;
 extern SDL_Window *g_window;
+
+extern char g_looking_at_block;
+extern ivec3 g_look_block_pos;
+extern Font *g_font_arial;
+extern unsigned int g_fps;
+extern int g_block_selected;
 
 extern int g_height;
 extern int g_width;

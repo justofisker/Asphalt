@@ -24,3 +24,9 @@ SDL_Window *g_window;
 int g_height = 720;
 int g_width = 1280;
 int g_target_framerate = 165;
+
+char g_looking_at_block;
+ivec3 g_look_block_pos;
+Font *g_font_arial;
+unsigned int g_fps;
+int g_block_selected;

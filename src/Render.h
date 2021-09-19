@@ -7,6 +7,8 @@ void Render_RenderLookBlock(int x, int y, int z);
 void Render_Start();
 void Render_End();
 
+void Render_RenderWorld();
+
 void Render_Setup();
 
 #endif //RENDER_H

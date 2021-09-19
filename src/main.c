@@ -27,12 +27,6 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 static char paused = 0;
 #define PLAYER_SIZE 0.2f
 #define PLAYER_HEIGHT 1.65f
-vec3 sky_color = {0.4f, 0.5f, 1.0f};
-vec3 hell_color = {0.4f, 0.0f, 0.0f};
-vec3 void_color = {0.0f, 0.0f, 0.0f};
-
-static Font *font_arial;
-
 Uint64 last_frame = 0;
 
 static void OnResizeGameWindow(int w, int h)
@@ -59,7 +53,7 @@ static void SetupGame()
     Render_SetupLookBlock();
     Text_Setup();
     Text_BeginCreateFont();
-    font_arial = Text_CreateFont("res/fonts/Arial.ttf", 24);
+    g_font_arial = Text_CreateFont("res/fonts/Arial.ttf", 24);
     Text_EndCreateFont();
 
     int w, h;
@@ -97,7 +91,6 @@ static void SetupGame()
 
 float time_passed = 0.0f;
 int frames = 0;
-int fps = 0;
 float time_since_space = 1.f;
 float time_since_forward = 1.f;
 char sprint_mode = 0;
@@ -105,11 +98,7 @@ char fly_mode = 0;
 
 vec3 velocity = GLM_VEC3_ZERO_INIT;
 char on_ground = 0;
-int block_selected = 1;
 char fullscreen = 0;
-
-char looking_at_block = 0;
-int look_block_pos[3];
 
 static void HandleCollision(vec3 *pos_delta)
 {
@@ -426,7 +415,7 @@ static void HandleRaycastBlocks(char *looking_at_block, int *look_block_pos)
                 break;
             }
 
-            Chunk_SetBlockIdAt(place_position[0], place_position[1], place_position[2], block_selected);
+            Chunk_SetBlockIdAt(place_position[0], place_position[1], place_position[2], g_block_selected);
 
             Util_RaycastToBlock(origin, direction, 10.0f, &hit_flags, &block_pos);
         }
@@ -438,60 +427,6 @@ static void HandleRaycastBlocks(char *looking_at_block, int *look_block_pos)
         look_block_pos[1] = block_pos[1];
         look_block_pos[2] = block_pos[2];
     }
-}
-
-static void Render()
-{
-    PostProcess_CaptureBuffer();
-    Render_Start();
-    {
-        if(looking_at_block) Render_RenderLookBlock(look_block_pos[0], look_block_pos[1], look_block_pos[2]);
-        Render_RenderChunks();
-        PostProcess_ReleaseBuffer();
-        glUseProgram(g_postprocess_shader);
-        int u_bInWater = glGetUniformLocation(g_postprocess_shader, "u_bInWater");
-        glUniform1i (u_bInWater, (Chunk_GetBlockIdAt(floorf(g_player_position[0]), floorf(g_player_position[1] + g_camera_offset[1]), floorf(g_player_position[2])) == BLOCKID_WATER) );
-        int u_ScreenHeight = glGetUniformLocation(g_postprocess_shader, "u_ScreenHeight");
-        glUniform1i(u_ScreenHeight, g_height);
-        int u_ScreenWidth = glGetUniformLocation(g_postprocess_shader, "u_ScreenWidth");
-        glUniform1i(u_ScreenWidth, g_width);
-        int u_SkyColor = glGetUniformLocation(g_postprocess_shader, "u_SkyColor");
-        glUniform3fv(u_SkyColor, 1, g_player_position[1] > 10.0f ? sky_color : void_color);
-        PostProcess_RenderToBuffer(g_postprocess_shader, 0, 1);
-        glDisable(GL_DEPTH_TEST);
-
-
-        if(1) {
-            float text_pos = 20.f;
-            frames++;
-            if(time_passed >= 1.0f)
-            {
-                fps = frames;
-                frames = 0;
-                time_passed -= 1.0f;
-            }
-
-            text_pos = Text_RenderText("FPS: %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial,
-                                        fps).y;
-
-            text_pos = Text_RenderText("x: %d y: %d z: %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial,
-                                        (int)floorf(g_player_position[0]), (int)floorf(g_player_position[1]), (int)floorf(g_player_position[2])).y;
-
-            text_pos = Text_RenderText("block in hand: %s", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial,
-                                        Block_GetBlockInfo(block_selected)->name).y;
-
-            text_pos = Text_RenderText("Resolution: %d x %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial,
-                                        g_width, g_height).y;
-            
-            text_pos = Text_RenderText("%s", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, font_arial,
-                                        glGetString(GL_RENDERER)).y;
-        }
-
-        glEnable(GL_DEPTH_TEST);
-
-        Input_RenderEnd();
-    }
-    Render_End();
 }
 
 int main(int argc, char *argv[])
@@ -580,6 +515,13 @@ int main(int argc, char *argv[])
             if (delta >= 0.1f)
                 delta = 0.1f;
             time_passed += delta;
+            frames++;
+            if(time_passed >= 1.0f)
+            {
+                g_fps = frames;
+                frames = 0;
+                time_passed -= 1.0f;
+            }
 
             if (Input_IsKeyJustPressed(SDLK_ESCAPE))
             {
@@ -619,20 +561,20 @@ int main(int argc, char *argv[])
 
             HandleMovement(delta);
 
-            looking_at_block = 0;
+            g_looking_at_block = 0;
 
-            block_selected += Input_GetMouseWheelDirection();
-            block_selected = mod(block_selected - 1, BLOCKID_COUNT - 1) + 1;
+            g_block_selected += Input_GetMouseWheelDirection();
+            g_block_selected = mod(g_block_selected - 1, BLOCKID_COUNT - 1) + 1;
 
-            HandleRaycastBlocks(&looking_at_block, look_block_pos);
+            HandleRaycastBlocks(&g_looking_at_block, g_look_block_pos);
 
             if (Input_IsMouseButtonJustPressedd(SDL_BUTTON_MIDDLE))
             {
-                block_selected = Chunk_GetBlockIdAt(look_block_pos[0], look_block_pos[1], look_block_pos[2]);
+                g_block_selected = Chunk_GetBlockIdAt(g_look_block_pos[0], g_look_block_pos[1], g_look_block_pos[2]);
             }
         }
 
-        Render();
+        Render_RenderWorld();
     }
 
     SDL_DestroyWindow(g_window);
