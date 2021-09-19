@@ -3,7 +3,7 @@
 
 #define CHUNK_SIZE_XZ 16
 #define CHUNK_SIZE_Y 256
-#define CHUNK_VIEW_DISTANCE 12
+#define CHUNK_VIEW_DISTANCE 6
 
 #include "Block.h"
 

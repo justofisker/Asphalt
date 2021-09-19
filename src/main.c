@@ -19,6 +19,13 @@
 #include "TextRenderer.h"
 #include "Render.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
+#if __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
+
 #if _MSC_VER && !__INTEL_COMPILER
 __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
 __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
@@ -37,7 +44,7 @@ static void OnResizeGameWindow(int w, int h)
     
     PostProcess_ResizeBuffer();
 
-    glClearDepth(1.0);
+    //glClearDepth(1.0);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glEnable(GL_DEPTH_TEST);
 }
@@ -429,52 +436,10 @@ static void HandleRaycastBlocks(char *looking_at_block, int *look_block_pos)
     }
 }
 
-int main(int argc, char *argv[])
-{
-    srand(time(0));
+static char running = true;
+static SDL_Event event;
 
-    if (SDL_Init(SDL_INIT_VIDEO) != 0)
-    {
-        SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
-        return 1;
-    }
-
-    g_window = SDL_CreateWindow("Asphalt",
-                                SDL_WINDOWPOS_CENTERED,
-                                SDL_WINDOWPOS_CENTERED,
-                                1280, 720,
-                                SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-
-    if (g_window == NULL)
-    {
-        SDL_Log("Unable to create window: %s", SDL_GetError());
-        return 1;
-    }
-
-    SDL_GL_CreateContext(g_window);
-
-    if (!gladLoadGL())
-    {
-        printf("No OpenGL context!\n");
-        exit(-1);
-    }
-
-    printf("OpenGL %d.%d\n", GLVersion.major, GLVersion.minor);
-    if (GLVersion.major < 2)
-    {
-        printf("Your system doesn't support OpenGL >= 2!\n");
-        return -1;
-    }
-
-    printf("OpenGL %s, GLSL %s\n%s\n", glGetString(GL_VERSION),
-           glGetString(GL_SHADING_LANGUAGE_VERSION), glGetString(GL_RENDERER));
-
-    SetupGame();
-
-    char running = true;
-    SDL_Event event;
-    while (running)
-    {
+void gameLoop() {
         while (SDL_PollEvent(&event))
         {
             switch (event.type)
@@ -577,8 +542,65 @@ int main(int argc, char *argv[])
         Render_RenderWorld();
     }
 
-    SDL_DestroyWindow(g_window);
+int main(int argc, char *argv[])
+{
+    printf("Hello gamers!");
 
+    srand(time(0));
+
+    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+    {
+        SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
+        return 1;
+    }
+
+    g_window = SDL_CreateWindow("Asphalt",
+                                SDL_WINDOWPOS_CENTERED,
+                                SDL_WINDOWPOS_CENTERED,
+                                1280, 720,
+                                SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+
+    if (g_window == NULL)
+    {
+        SDL_Log("Unable to create window: %s", SDL_GetError());
+        return 1;
+    }
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+
+    SDL_GLContext context = SDL_GL_CreateContext(g_window);
+    
+    if (!context) {
+        SDL_Log("Failed to create OpenGL context!\n");
+        exit(0);
+    }
+
+    if (!gladLoadGLES2Loader(SDL_GL_GetProcAddress))
+    {
+        SDL_Log("Failed to Load glad!\n");
+        exit(0);
+    }
+
+    printf("OpenGL %d.%d\n", GLVersion.major, GLVersion.minor);
+    if (GLVersion.major < 2)
+    {
+        printf("Your system doesn't support OpenGL >= 2!\n");
+        return -1;
+    }
+
+    printf("OpenGL %s, GLSL %s\n%s\n", glGetString(GL_VERSION),
+           glGetString(GL_SHADING_LANGUAGE_VERSION), glGetString(GL_RENDERER));
+
+    SetupGame();
+
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(gameLoop, 0, true);
+#else
+    while(running) { gameLoop(); }
+#endif
+
+    SDL_DestroyWindow(g_window);
     SDL_Quit();
 
     return 0;

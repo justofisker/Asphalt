@@ -1,4 +1,5 @@
-#version 330
+#version 300 es
+precision mediump float;
 
 layout(location = 0) in vec4 v_Position;
 

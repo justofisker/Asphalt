@@ -23,12 +23,12 @@ Texture* Texture_CreateTexture(const char* file_path, int texture_min_filter, in
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_buffer);
 
-    if(mipmap)
-    {
-        printf("Mipmap!\n");
-        glGenerateMipmap(GL_TEXTURE_2D);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, lod_bias);
-    }
+    //if(mipmap)
+    //{
+    //    printf("Mipmap!\n");
+    //    glGenerateMipmap(GL_TEXTURE_2D);
+    //    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, lod_bias);
+    //}
     
     glBindTexture(GL_TEXTURE_2D, 0);
 

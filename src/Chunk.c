@@ -127,10 +127,12 @@ static void Chunk_PushChunkMeshBuffers(Chunk *chunk)
 
 SDL_Thread *generation_thread;
 
-static int Chunk_AsyncGenerateChunks(void* arg)
+int Chunk_AsyncGenerateChunks(void* arg)
 {
+#ifndef __EMSCRIPTEN__
     srand((unsigned int)time(0));
     while(1)
+#endif
     {
 
     int x = 0, y = 0;
@@ -163,7 +165,6 @@ static int Chunk_AsyncGenerateChunks(void* arg)
                     Chunk_FillSuroundingChunk(chunk_x + 1, chunk_y);
                     Chunk_FillSuroundingChunk(chunk_x, chunk_y - 1);
                     Chunk_FillSuroundingChunk(chunk_x, chunk_y + 1);
-
 
                     if (cur_x != (int)(g_player_position[0]) / CHUNK_SIZE_XZ
                      || cur_y != (int)(g_player_position[2]) / CHUNK_SIZE_XZ)
@@ -594,7 +595,11 @@ void Chunk_SetupGenerationThread()
 {
     memset(chunks, 0, sizeof(chunks));
     memset(chunks_to_free, 0, sizeof(chunks_to_free));
+#ifdef __EMSCRIPTEN__
+    Chunk_AsyncGenerateChunks(0);
+#else
     generation_thread = SDL_CreateThread(Chunk_AsyncGenerateChunks, "Chunk Generation", (void*)NULL);
+#endif
 }
 
 void Render_RenderChunks()

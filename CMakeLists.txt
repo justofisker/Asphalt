@@ -14,7 +14,7 @@ set (source
     "${PROJECT_SOURCE_DIR}/src/Util.c"
     "${PROJECT_SOURCE_DIR}/src/Globals.c"
     "${PROJECT_SOURCE_DIR}/src/Texture.c"
-    "${PROJECT_SOURCE_DIR}/src/stb_image.c"
+    # "${PROJECT_SOURCE_DIR}/src/stb_image.c"
     "${PROJECT_SOURCE_DIR}/src/Block.c"
     "${PROJECT_SOURCE_DIR}/src/Sprite.c"
     "${PROJECT_SOURCE_DIR}/src/Input.c"
@@ -25,7 +25,12 @@ set (source
     "${APP_ICON_RESOURCE_WINDOWS}"
     )
 
-if (UNIX)
+if (EMSCRIPTEN)
+    add_executable(Asphalt ${source})
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s ASSERTIONS=1 -s ALLOW_MEMORY_GROWTH=1 -O3 -s USE_SDL=2 -s USE_FREETYPE=1 -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s EXIT_RUNTIME=1 -s ASYNCIFY --preload-file ${PROJECT_SOURCE_DIR}/res@/res")
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+elseif (UNIX)
     add_executable(Asphalt ${source})
     set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
     find_package(SDL2 REQUIRED)
@@ -47,10 +52,10 @@ add_custom_command(TARGET Asphalt POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/res/ $<TARGET_FILE_DIR:Asphalt>/res/)
 
-
-add_subdirectory("${PROJECT_SOURCE_DIR}/thirdparty/freetype")
-target_link_libraries(Asphalt freetype)
-        
+if (NOT DEFINED EMSCRIPTEN)
+    add_subdirectory("${PROJECT_SOURCE_DIR}/thirdparty/freetype")
+    target_link_libraries(Asphalt freetype)
+endif ()        
 
 target_include_directories(Asphalt PUBLIC
     "${PROJECT_SOURCE_DIR}/thirdparty/cglm/include"

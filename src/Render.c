@@ -11,7 +11,7 @@
 #include "Util.h"
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
+//#include <SDL2/SDL_opengl.h>
 
 static vec3 sky_color = {0.4f, 0.5f, 1.0f};
 static vec3 hell_color = {0.4f, 0.0f, 0.0f};
@@ -191,6 +191,16 @@ void Render_Setup()
     g_color_view_loc = glGetUniformLocation(g_color_shader, "u_View");
     g_color_projection_loc = glGetUniformLocation(g_color_shader, "u_Projection");
     g_color_color_loc = glGetUniformLocation(g_color_shader, "u_Color");
+
+    glUseProgram(g_postprocess_shader);
+    glUniform4f(glGetUniformLocation(g_postprocess_shader, "u_WaterColor"), 0.4f, 0.4f, 0.9f, 1.0f);
+    glUniform3f(glGetUniformLocation(g_postprocess_shader, "u_WaterFarColor"), 0.0f, 0.0f, 0.4f);
+    glUniform1i(glGetUniformLocation(g_postprocess_shader, "u_FogNear"), 120);
+    glUniform1i(glGetUniformLocation(g_postprocess_shader, "u_FogFar"), 180);
+    glUniform1i(glGetUniformLocation(g_postprocess_shader, "u_FogExponent"), 2);
+    glUniform1f(glGetUniformLocation(g_postprocess_shader, "u_ViewNear"), 0.05f);
+    glUniform1f(glGetUniformLocation(g_postprocess_shader, "u_ViewFar"), 700.0f);
+    glUseProgram(0);
 
     glm_vec3_zero(g_player_position);
     g_player_position[1] = 255.0f;
