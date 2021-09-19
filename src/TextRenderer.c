@@ -174,7 +174,7 @@ TextPos Text_RenderTextBuffer(char *text, float x, float y, float color[4], Font
     return (TextPos){x, g_height - y };
 }
 
-TextPos Text_RenderText(char *format, float x, float y, float color[4], Font *font, ...)
+TextPos Text_RenderText(float x, float y, float color[4], Font *font, char *format, ...)
 {
     static char buf[1024];
     va_list args;

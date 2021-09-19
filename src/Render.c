@@ -151,19 +151,19 @@ void Render_RenderWorld()
             float text_pos = 20.f;
             
 
-            text_pos = Text_RenderText("FPS: %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial,
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "FPS: %d",
                                         g_fps).y;
 
-            text_pos = Text_RenderText("x: %d y: %d z: %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial,
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "x: %d y: %d z: %d",
                                         (int)floorf(g_player_position[0]), (int)floorf(g_player_position[1]), (int)floorf(g_player_position[2])).y;
 
-            text_pos = Text_RenderText("block in hand: %s", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial,
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "block in hand: %s",
                                         Block_GetBlockInfo(g_block_selected)->name).y;
 
-            text_pos = Text_RenderText("Resolution: %d x %d", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial,
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "Resolution: %d x %d", 
                                         g_width, g_height).y;
             
-            text_pos = Text_RenderText("%s", 20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial,
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "%s",
                                         glGetString(GL_RENDERER)).y;
         }
 

@@ -26,6 +26,6 @@ void Text_EndCreateFont();
 void Text_FreeFont(Font *font);
 
 TextPos Text_RenderTextBuffer(char *text, float x, float y, float color[4], Font *font);
-TextPos Text_RenderText(char *format, float x, float y, float color[4], Font *font, ...);
+TextPos Text_RenderText(float x, float y, float color[4], Font *font, char *format, ...);
 
 #endif // TEXTRENDERER_H
