@@ -375,101 +375,69 @@ static void HandleMovement(float delta)
 }
 
 static void HandleRaycastBlocks(char *looking_at_block, int *look_block_pos)
-{
+{   
+    vec3 origin;
+    vec3 direction = {0.0f, 0.0f, -1.0f};
 
-    // Block Break Raycast
-    if(1){
-        float ray_inc = 0.05f;
-        float max_distance = 10.0f;
+    glm_vec3_copy(g_player_position, origin);
+    glm_vec3_add(origin, g_camera_offset, origin);
+    glm_vec3_rotate(direction, -g_camera_rotation[0], (vec3){1.0f, 0.0f, 0.0f});
+    glm_vec3_rotate(direction, -g_camera_rotation[1], (vec3){0.0f, 1.0f, 0.0f});
 
-        vec3 origin;
-        vec3 direction = {0.0f, 0.0f, -1.0f};
+    char hit_flags;
+    ivec3 block_pos;
+    Util_RaycastToBlock(origin, direction, 10.0f, &hit_flags, &block_pos);
 
-        glm_vec3_copy(g_player_position, origin);
-        glm_vec3_add(origin, g_camera_offset, origin);
-        glm_vec3_rotate(direction, -g_camera_rotation[0], (vec3){1.0f, 0.0f, 0.0f});
-        glm_vec3_rotate(direction, -g_camera_rotation[1], (vec3){0.0f, 1.0f, 0.0f});
-        glm_normalize(direction);
-        glm_vec3_mul(direction, (vec3){ray_inc, ray_inc, ray_inc}, direction);
+    if(!paused && hit_flags) {
+        // Block Break Raycast
+        if(Input_IsMouseButtonJustPressedd(SDL_BUTTON_LEFT)) {
+            Chunk_SetBlockIdAt(block_pos[0], block_pos[1], block_pos[2], 0);
 
+            Util_RaycastToBlock(origin, direction, 10.0f, &hit_flags, &block_pos);
+        }
+
+        // Raycast Place BLock
+        if(Input_IsMouseButtonJustPressedd(SDL_BUTTON_RIGHT))
         {
-            vec3 target = {0.0f, 0.0f, 0.0f};
-            while((target[0]*target[0] + target[1]*target[1] + target[2]*target[2]) < max_distance*max_distance)
+            ivec3 place_position;
+            place_position[0] = block_pos[0];
+            place_position[1] = block_pos[1];
+            place_position[2] = block_pos[2];
+
+            switch(hit_flags)
             {
-                glm_vec3_add(target, direction, target);
-
-                vec3 position;
-                glm_vec3_add(target, origin, position);
-
-                int block_pos[3] = {floorf(position[0]), floorf(position[1]), floorf(position[2])};
-
-                char found_block = !(Block_GetBlockInfo(Chunk_GetBlockIdAt(block_pos[0], block_pos[1], block_pos[2]))->flags & BLOCKFLAG_NO_COLLISION);
-
-                if(found_block) {
-                    *looking_at_block = 1;
-                    memcpy(look_block_pos, block_pos, sizeof(block_pos));
-
-                    if(!paused && Input_IsMouseButtonJustPressedd(SDL_BUTTON_LEFT))
-                    {
-                        Chunk_SetBlockIdAt(block_pos[0], block_pos[1], block_pos[2], 0);
-                    }
-
-                    break;
-                }
+            case RAYCAST_HITFLAG_FACE_NORTH:
+                place_position[2]++;
+                break;
+            case RAYCAST_HITFLAG_FACE_EAST:
+                place_position[0]++;
+                break;
+            case RAYCAST_HITFLAG_FACE_SOUTH:
+                place_position[2]--;
+                break;
+            case RAYCAST_HITFLAG_FACE_WEST:
+                place_position[0]--;
+                break;
+            case RAYCAST_HITFLAG_FACE_TOP:
+                place_position[1]++;
+                break;
+            case RAYCAST_HITFLAG_FACE_BOTTOM:
+                place_position[1]--;
+                break;
             }
+
+            Chunk_SetBlockIdAt(place_position[0], place_position[1], place_position[2], block_selected);
+
+            Util_RaycastToBlock(origin, direction, 10.0f, &hit_flags, &block_pos);
         }
     }
 
-    // Raycast Place BLock
-    if(!paused && Input_IsMouseButtonJustPressedd(SDL_BUTTON_RIGHT))
-    {
-        float max_distance = 10.0f;
-
-        vec3 origin;
-        vec3 direction = {0.0f, 0.0f, -1.0f};
-        vec3 ray_inc = {0.05f, 0.05f, 0.05f};
-
-        glm_vec3_copy(g_player_position, origin);
-        glm_vec3_add(origin, g_camera_offset, origin);
-        glm_vec3_rotate(direction, -g_camera_rotation[0], (vec3){1.0f, 0.0f, 0.0f});
-        glm_vec3_rotate(direction, -g_camera_rotation[1], (vec3){0.0f, 1.0f, 0.0f});
-        glm_normalize(direction);
-        glm_vec3_mul(ray_inc, direction, ray_inc);
-
-        {
-            vec3 target = {0.0f, 0.0f, 0.0f};
-            while((target[0]*target[0] + target[1]*target[1] + target[2]*target[2]) < max_distance*max_distance)
-            {
-                glm_vec3_add(target, ray_inc, target);
-
-                vec3 position;
-                glm_vec3_add(target, origin, position);
-
-                char found_block = !(Block_GetBlockInfo(Chunk_GetBlockIdAt(floorf(position[0]), floorf(position[1]), floorf(position[2])))->flags & BLOCKFLAG_NO_COLLISION);
-
-                if(found_block)
-                {
-                    glm_vec3_sub(position, ray_inc, position);
-
-                    int block_pos[3] = { floorf(position[0]), floorf(position[1]), floorf(position[2]) };
-
-                    {
-                        if( ((int)floorf(g_player_position[0]) == block_pos[0] && (int)floorf(g_player_position[1]) == block_pos[1] && (int)floorf(g_player_position[2]) == block_pos[2])
-                         || ((int)floorf(g_player_position[0]) == block_pos[0] && (int)floorf(g_player_position[1] + 1.0f) == block_pos[1] && (int)floorf(g_player_position[2]) == block_pos[2])
-                         || ((int)floorf(g_player_position[0]) == block_pos[0] && (int)floorf(g_player_position[1] + PLAYER_HEIGHT) == block_pos[1] && (int)floorf(g_player_position[2]) == block_pos[2]) )
-                        {
-                            break;
-                        }
-                    }
-
-                    Chunk_SetBlockIdAt(floorf(position[0]), floorf(position[1]), floorf(position[2]), block_selected);
-
-                    break;
-                }
-            }
-        }
+    if(hit_flags) {
+        *looking_at_block = 1;
+        look_block_pos[0] = block_pos[0];
+        look_block_pos[1] = block_pos[1];
+        look_block_pos[2] = block_pos[2];
     }
-
 }
 
 static void Render()
