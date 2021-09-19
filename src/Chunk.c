@@ -596,7 +596,7 @@ void Chunk_SetupGenerationThread()
     memset(chunks, 0, sizeof(chunks));
     memset(chunks_to_free, 0, sizeof(chunks_to_free));
 #ifdef __EMSCRIPTEN__
-    Chunk_AsyncGenerateChunks(0);
+    //Chunk_AsyncGenerateChunks(0);
 #else
     generation_thread = SDL_CreateThread(Chunk_AsyncGenerateChunks, "Chunk Generation", (void*)NULL);
 #endif
