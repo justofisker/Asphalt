@@ -164,6 +164,7 @@ void Util_RaycastToBlock(vec3 from, vec3 direction, float max_distance, char *hi
     glm_vec3_mul(direction, (vec3){RAY_INC, RAY_INC, RAY_INC}, direction);
     float max_distance_squared = max_distance * max_distance;
     vec3 ray_offset = { 0 };
+    *hit_flags = 0;
 
     while(ray_offset[0]*ray_offset[0] + ray_offset[1]*ray_offset[1] + ray_offset[2]*ray_offset[2] <= max_distance_squared)
     {
@@ -179,7 +180,7 @@ void Util_RaycastToBlock(vec3 from, vec3 direction, float max_distance, char *hi
             glm_vec3_sub(ray_offset, direction, ray_offset);
             glm_vec3_add(from, ray_offset, position);
             int ipos_place[3] = { floorf(position[0]), floorf(position[1]), floorf(position[2]) };
-            
+
             if(ipos_place[0] > ipos[0])
                 *hit_flags |= RAYCAST_HITFLAG_FACE_EAST;
             if(ipos_place[0] < ipos[0])
@@ -201,7 +202,6 @@ void Util_RaycastToBlock(vec3 from, vec3 direction, float max_distance, char *hi
 
         glm_vec3_add(ray_offset, direction, ray_offset);
     }
-    *hit_flags = 0;
     (*result)[0] = 0;
     (*result)[1] = 0;
     (*result)[2] = 0;
