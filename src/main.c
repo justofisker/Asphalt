@@ -544,8 +544,6 @@ void gameLoop() {
 
 int main(int argc, char *argv[])
 {
-    printf("Hello gamers!");
-
     srand(time(0));
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
