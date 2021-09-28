@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <glad/glad.h>
-#include <SDL.h>
 #include <cglm/cglm.h>
+#include <SDL.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>

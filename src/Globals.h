@@ -1,6 +1,7 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+#undef __SSE3__
 #include <cglm/cglm.h>
 #include <SDL.h>
 #include "Texture.h"
