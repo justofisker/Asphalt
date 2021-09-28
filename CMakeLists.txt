@@ -29,7 +29,7 @@ if (EMSCRIPTEN)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s ASSERTIONS=1 -s ALLOW_MEMORY_GROWTH=1 -O3 -s USE_SDL=2 -s USE_FREETYPE=1 -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s EXIT_RUNTIME=1 -s ASYNCIFY --preload-file ${PROJECT_SOURCE_DIR}/res@/res")
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
-else ()
+else (EMSCRIPTEN)
     set(SDL_RENDER_ENABLED_BY_DEFAULT OFF CACHE BOOL "")
     set(SDL_TIMERS_ENABLED_BY_DEFAULT TRUE CACHE BOOL "")
     set(SDL_HAPTICS_ENABLED_BY_DEFAULT OFF CACHE BOOL "")
@@ -44,7 +44,7 @@ else ()
     set(SSE OFF CACHE BOOL "")
     set(SSE2 OFF CACHE BOOL "")
     set(SSE3 OFF CACHE BOOL "")
-    set(VIDEO_OPENGL OFF CACHE BOOL "")
+    set(VIDEO_OPENGL TRUE CACHE BOOL "")
     set(VIDEO_OPENGLES TRUE CACHE BOOL "")
     set(DIRECTX OFF CACHE BOOL "")
     set(RENDER_D3D OFF CACHE BOOL "")
@@ -58,22 +58,18 @@ else ()
     set(SDL2_LIBRARIES "SDL2-static" "SDL2main")
     if (UNIX)
         add_executable(Asphalt ${source})
-        target_link_libraries(Asphalt dl m ${SDL2_LIBRARIES})
+        target_link_libraries(Asphalt dl m)
     elseif (WIN32)
         add_executable(Asphalt WIN32 ${source})
-        target_link_libraries(Asphalt ${SDL2_LIBRARIES})
     endif (UNIX)
-endif (EMSCRIPTEN)
-
-if (NOT DEFINED EMSCRIPTEN)
+    
     add_subdirectory("${PROJECT_SOURCE_DIR}/thirdparty/freetype")
-    target_link_libraries(Asphalt freetype)
-endif ()        
+    target_link_libraries(Asphalt freetype ${SDL2_LIBRARIES})
+endif (EMSCRIPTEN)
 
 target_include_directories(Asphalt PUBLIC
     "${PROJECT_SOURCE_DIR}/thirdparty/cglm/include"
     "${PROJECT_SOURCE_DIR}/thirdparty/glad/include"
     "${PROJECT_SOURCE_DIR}/thirdparty/stb"
     "${PROJECT_SOURCE_DIR}/thirdparty/freetype/include"
-    "${PROJECT_SOURCE_DIR}/thirdparty/SDL2/x86_64-w64-mingw32/include"
     )

@@ -10,7 +10,7 @@
 #include "Chunk.h"
 #include "Util.h"
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 //#include <SDL2/SDL_opengl.h>
 
 static vec3 sky_color = {0.4f, 0.5f, 1.0f};

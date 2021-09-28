@@ -2,7 +2,7 @@
 #define GLOBALS_H
 
 #include <cglm/cglm.h>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "Texture.h"
 
 #define WINDOW_TITLE "Asphalt"

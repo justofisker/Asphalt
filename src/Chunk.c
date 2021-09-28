@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <cglm/cglm.h>
 #include <glad/glad.h>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "Block.h"
 #include <time.h>
 
