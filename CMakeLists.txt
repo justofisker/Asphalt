@@ -14,7 +14,6 @@ set (source
     "${PROJECT_SOURCE_DIR}/src/Util.c"
     "${PROJECT_SOURCE_DIR}/src/Globals.c"
     "${PROJECT_SOURCE_DIR}/src/Texture.c"
-    # "${PROJECT_SOURCE_DIR}/src/stb_image.c"
     "${PROJECT_SOURCE_DIR}/src/Block.c"
     "${PROJECT_SOURCE_DIR}/src/Sprite.c"
     "${PROJECT_SOURCE_DIR}/src/Input.c"
@@ -30,27 +29,41 @@ if (EMSCRIPTEN)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s ASSERTIONS=1 -s ALLOW_MEMORY_GROWTH=1 -O3 -s USE_SDL=2 -s USE_FREETYPE=1 -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s EXIT_RUNTIME=1 -s ASYNCIFY --preload-file ${PROJECT_SOURCE_DIR}/res@/res")
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
-elseif (UNIX)
-    add_executable(Asphalt ${source})
-    set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
-    find_package(SDL2 REQUIRED)
-    target_link_libraries(Asphalt dl m ${SDL2_LIBRARY})
-elseif (WIN32)
-    add_executable(Asphalt WIN32 ${source})
-    if (MSVC)
-        target_link_libraries(Asphalt "${PROJECT_SOURCE_DIR}/thirdparty/SDL2/x86_64-VS/SDL2.lib" "${PROJECT_SOURCE_DIR}/thirdparty/SDL2/x86_64-VS/SDL2main.lib")
-    else (MSVC)
-        target_link_libraries(Asphalt "${PROJECT_SOURCE_DIR}/thirdparty/SDL2/x86_64-w64-mingw32/lib/libSDL2.dll.a")
-        add_compile_definitions(SDL_MAIN_HANDLED)
-    endif (MSVC)
-    add_custom_command(TARGET Asphalt POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy
-                       ${CMAKE_SOURCE_DIR}/thirdparty/SDL2/x86_64-w64-mingw32/bin/SDL2.dll $<TARGET_FILE_DIR:Asphalt>/SDL2.dll)
-endif (UNIX)
+else ()
+    set(SDL_RENDER_ENABLED_BY_DEFAULT OFF CACHE BOOL "")
+    set(SDL_TIMERS_ENABLED_BY_DEFAULT TRUE CACHE BOOL "")
+    set(SDL_HAPTICS_ENABLED_BY_DEFAULT OFF CACHE BOOL "")
+    set(SDL_FILESYSTEM_ENABLED_BY_DEFAULT OFF CACHE BOOL "")
+    set(SDL_SENSOR_ENABLED_BY_DEFAULT OFF CACHE BOOL "")
+    set(SDL_DLOPEN_ENABLED_BY_DEFAULT OFF CACHE BOOL "")
 
-add_custom_command(TARGET Asphalt POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/res/ $<TARGET_FILE_DIR:Asphalt>/res/)
+    set(VIDEO_DUMMY OFF CACHE BOOL "")
+    set(DISKAUDIO OFF CACHE BOOL "")
+    set(DUMMYAUDIO OFF CACHE BOOL "")
+    set(HIDAPI OFF CACHE BOOL "")
+    set(SSE OFF CACHE BOOL "")
+    set(SSE2 OFF CACHE BOOL "")
+    set(SSE3 OFF CACHE BOOL "")
+    set(VIDEO_OPENGL OFF CACHE BOOL "")
+    set(VIDEO_OPENGLES TRUE CACHE BOOL "")
+    set(DIRECTX OFF CACHE BOOL "")
+    set(RENDER_D3D OFF CACHE BOOL "")
+    set(RENDER_METAL OFF CACHE BOOL "")
+    set(VIDEO_VIVANTE OFF CACHE BOOL "")
+    set(VIDEO_METAL OFF CACHE BOOL "")
+    set(VIDEO_VULKAN OFF CACHE BOOL "")
+
+    set(SDL_SHARED_ENABLED_BY_DEFAULT OFF CACHE BOOL "")
+    add_subdirectory("${PROJECT_SOURCE_DIR}/thirdparty/SDL")
+    set(SDL2_LIBRARIES "SDL2-static" "SDL2main")
+    if (UNIX)
+        add_executable(Asphalt ${source})
+        target_link_libraries(Asphalt dl m ${SDL2_LIBRARIES})
+    elseif (WIN32)
+        add_executable(Asphalt WIN32 ${source})
+        target_link_libraries(Asphalt ${SDL2_LIBRARIES})
+    endif (UNIX)
+endif (EMSCRIPTEN)
 
 if (NOT DEFINED EMSCRIPTEN)
     add_subdirectory("${PROJECT_SOURCE_DIR}/thirdparty/freetype")
