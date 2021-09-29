@@ -14,6 +14,7 @@
 #include "Block.h"
 #include <time.h>
 #include <math.h>
+#include "Render.h"
 
 typedef struct _Vertex
 {
@@ -264,8 +265,13 @@ void Chunk_PopulateChunkMeshBuffers(Chunk *chunk)
 
     // Solid Mesh
     {
+        chunk->aabb_solid[0][0] = CHUNK_SIZE_XZ;
+        chunk->aabb_solid[0][2] = CHUNK_SIZE_XZ;
+        chunk->aabb_solid[0][1] = CHUNK_SIZE_Y;
+        chunk->aabb_solid[1][0] = 0;
+        chunk->aabb_solid[1][1] = 0;
+        chunk->aabb_solid[1][2] = 0;
         int face_count = 0;
-
 
         int x, y, z, i;
         for(x = 0; x < CHUNK_SIZE_XZ; x++)
@@ -276,6 +282,14 @@ void Chunk_PopulateChunkMeshBuffers(Chunk *chunk)
                 {
                     if((Block_GetBlockInfo(chunk->blocks[x][y][z].id)->flags & BLOCKFLAG_TRANSPARENT) == 0)
                     {
+                        if(x < chunk->aabb_solid[0][0]) chunk->aabb_solid[0][0] = x;
+                        if(x + 1 > chunk->aabb_solid[1][0]) chunk->aabb_solid[1][0] = x + 1;
+                        if(y < chunk->aabb_solid[0][1]) chunk->aabb_solid[0][1] = y;
+                        if(y + 1 > chunk->aabb_solid[1][1]) chunk->aabb_solid[1][1] = y + 1;
+                        if(z < chunk->aabb_solid[0][2]) chunk->aabb_solid[0][2] = z;
+                        if(z + 1 > chunk->aabb_solid[1][2]) chunk->aabb_solid[1][2] = z + 1;
+
+
                         char north;
                         if(z + 1 == CHUNK_SIZE_XZ)
                         {
@@ -426,6 +440,13 @@ void Chunk_PopulateChunkMeshBuffers(Chunk *chunk)
     }
     // Transparent Mesh
     {
+        chunk->aabb_transparent[0][0] = CHUNK_SIZE_XZ;
+        chunk->aabb_transparent[0][2] = CHUNK_SIZE_XZ;
+        chunk->aabb_transparent[0][1] = CHUNK_SIZE_Y;
+        chunk->aabb_transparent[1][0] = 0;
+        chunk->aabb_transparent[1][1] = 0;
+        chunk->aabb_transparent[1][2] = 0;
+        
         int face_count = 0;
 
         int x, y, z, i;
@@ -437,6 +458,13 @@ void Chunk_PopulateChunkMeshBuffers(Chunk *chunk)
                 {
                     if(chunk->blocks[x][y][z].id && (Block_GetBlockInfo(chunk->blocks[x][y][z].id)->flags & BLOCKFLAG_TRANSPARENT) != 0)
                     {
+                        if(x < chunk->aabb_transparent[0][0]) chunk->aabb_transparent[0][0] = x;
+                        if(x + 1 > chunk->aabb_transparent[1][0]) chunk->aabb_transparent[1][0] = x + 1;
+                        if(y < chunk->aabb_transparent[0][1]) chunk->aabb_transparent[0][1] = y;
+                        if(y + 1 > chunk->aabb_transparent[1][1]) chunk->aabb_transparent[1][1] = y + 1;
+                        if(z < chunk->aabb_transparent[0][2]) chunk->aabb_transparent[0][2] = z;
+                        if(z + 1 > chunk->aabb_transparent[1][2]) chunk->aabb_transparent[1][2] = z + 1;
+
                         char north;
                         if(z + 1 == CHUNK_SIZE_XZ)
                         {
@@ -622,8 +650,14 @@ void Render_RenderChunks()
     glm_frustum_planes(viewProj, planes);
     g_chunks_drawn = 0;
 
-    for(stage = 0; stage < 4; stage++) {
-        if(stage == 3) glDisable(GL_CULL_FACE);
+    for(stage = 0; stage < 5; stage++) {
+        if(stage == 4) {
+            glDisable(GL_CULL_FACE);
+            glUseProgram(g_block_shader);
+        }
+        if(stage == 3) {
+
+        }
         for(x = 0; x < CHUNK_ARR_SIZE; x++)
         {
             for(y = 0; y < CHUNK_ARR_SIZE; y++)
@@ -649,21 +683,22 @@ void Render_RenderChunks()
                     if(chunk) {
                         if(chunk->mesh && chunk->mesh->index_count)
                         {
-                            vec3 box[2] = { {chunk->x * CHUNK_SIZE_XZ - g_player_position[0], 0.0f - g_player_position[1], chunk->y * CHUNK_SIZE_XZ - g_player_position[2]},
-                                            {chunk->x * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[0], CHUNK_SIZE_Y - g_player_position[1], chunk->y * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[2]} };
+                            vec3 box[2] = { {chunk->x * CHUNK_SIZE_XZ + chunk->aabb_solid[0][0] - g_player_position[0], chunk->aabb_solid[0][1] - g_player_position[1], chunk->y * CHUNK_SIZE_XZ + chunk->aabb_solid[0][2] - g_player_position[2]},
+                                            {chunk->x * CHUNK_SIZE_XZ + chunk->aabb_solid[1][0] - g_player_position[0], chunk->aabb_solid[1][1] - g_player_position[1], chunk->y * CHUNK_SIZE_XZ + chunk->aabb_solid[1][2] - g_player_position[2]} };
                             if(glm_aabb_frustum(box, planes)) {
                                 Chunk_RenderChunk(chunk, 0);
                                 g_chunks_drawn++;
                             }
+                            
                         }
                     }
                     break;
-                case 3:
+                case 4:
                     if(chunk) {
                         if(chunk->transparent_mesh && chunk->transparent_mesh->index_count)
                         {
-                            vec3 box[2] = { {chunk->x * CHUNK_SIZE_XZ - g_player_position[0], 0.0f - g_player_position[1], chunk->y * CHUNK_SIZE_XZ - g_player_position[2]},
-                                            {chunk->x * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[0], CHUNK_SIZE_Y - g_player_position[1], chunk->y * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[2]} };
+                            vec3 box[2] = { {chunk->x * CHUNK_SIZE_XZ + chunk->aabb_transparent[0][0] - g_player_position[0], chunk->aabb_transparent[0][1] - g_player_position[1], chunk->y * CHUNK_SIZE_XZ + chunk->aabb_transparent[0][2] - g_player_position[2]},
+                                            {chunk->x * CHUNK_SIZE_XZ + chunk->aabb_transparent[1][0] - g_player_position[0], chunk->aabb_transparent[1][1] - g_player_position[1], chunk->y * CHUNK_SIZE_XZ + chunk->aabb_transparent[1][2] - g_player_position[2]} };
                             if(glm_aabb_frustum(box, planes)) {
                                 Chunk_RenderChunk(chunk, 1);
                                 g_chunks_drawn++;
@@ -671,6 +706,20 @@ void Render_RenderChunks()
                         }
                     }
                     break;
+                case 3:
+                    if(g_draw_aabb_debug && chunk)
+                    {
+                        if(chunk->mesh && chunk->mesh->index_count)
+                            Render_RenderDebugBox(
+                                (vec3){chunk->x * CHUNK_SIZE_XZ + chunk->aabb_solid[0][0], chunk->aabb_solid[0][1], chunk->y * CHUNK_SIZE_XZ + chunk->aabb_solid[0][2]},
+                                (vec3){chunk->aabb_solid[1][0] - chunk->aabb_solid[0][0], chunk->aabb_solid[1][1] - chunk->aabb_solid[0][1], chunk->aabb_solid[1][2] - chunk->aabb_solid[0][2]},
+                                (vec4){1.0f, 1.0f, 0.0f, 1.0f}, 0);
+                        if(chunk->transparent_mesh && chunk->transparent_mesh->index_count)
+                            Render_RenderDebugBox(
+                                (vec3){chunk->x * CHUNK_SIZE_XZ + chunk->aabb_transparent[0][0], chunk->aabb_transparent[0][1], chunk->y * CHUNK_SIZE_XZ + chunk->aabb_transparent[0][2]},
+                                (vec3){chunk->aabb_transparent[1][0] - chunk->aabb_transparent[0][0], chunk->aabb_transparent[1][1] - chunk->aabb_transparent[0][1], chunk->aabb_transparent[1][2] - chunk->aabb_transparent[0][2]},
+                                (vec4){0.0f, 1.0f, 0.0f, 1.0f}, 0);
+                    }
                 }
             }
         }

@@ -36,6 +36,7 @@ extern int g_color_model_loc;
 extern int g_color_view_loc;
 extern int g_color_projection_loc;
 extern int g_color_color_loc;
+extern int g_color_size_loc;
 extern unsigned int g_color_shader;
 extern unsigned int g_postprocess_shader;
 extern Texture *g_texture;
@@ -52,5 +53,6 @@ extern int g_width;
 
 extern int g_target_framerate;
 extern int g_chunks_drawn;
+extern char g_draw_aabb_debug;
 
 #endif // GLOBALS_H

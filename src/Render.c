@@ -87,6 +87,25 @@ void Render_RenderLookBlock(int x, int y, int z)
     glUniformMatrix4fv(g_color_view_loc, 1, GL_FALSE, g_view[0]);
     glUniformMatrix4fv(g_color_projection_loc, 1, GL_FALSE, g_projection[0]);
     glUniform4f(g_color_color_loc, 0.0f, 0.0f, 0.0f, 1.0f);
+    glUniform3f(g_color_size_loc, 1.0f, 1.0f, 1.0f);
+    glBindVertexArray(look_block_mesh->array_object);
+    glLineWidth(1.5f);
+    glDrawElements(GL_LINES, look_block_mesh->index_count, look_block_mesh->index_type, (void*)0);
+    glBindVertexArray(0);
+}
+
+void Render_RenderDebugBox(vec3 base, vec3 size, vec4 color, char depth_test)
+{
+    mat4 model = GLM_MAT4_IDENTITY_INIT;
+    vec3 translation;
+    glm_vec3_sub(base, g_player_position, translation);
+    glm_translate(model, translation);
+    glUseProgram(g_color_shader);
+    glUniformMatrix4fv(g_color_model_loc, 1, GL_FALSE, model[0]);
+    glUniformMatrix4fv(g_color_view_loc, 1, GL_FALSE, g_view[0]);
+    glUniformMatrix4fv(g_color_projection_loc, 1, GL_FALSE, g_projection[0]);
+    glUniform4f(g_color_color_loc, color[0], color[1], color[2], color[3]);
+    glUniform3f(g_color_size_loc, size[0], size[1], size[2]);
     glBindVertexArray(look_block_mesh->array_object);
     glLineWidth(1.5f);
     glDrawElements(GL_LINES, look_block_mesh->index_count, look_block_mesh->index_type, (void*)0);
@@ -168,6 +187,14 @@ void Render_RenderWorld()
 
             text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "Chunks Drawcalls: %d",
                                         g_chunks_drawn).y;
+
+            text_pos += 20.0f;
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "Use WASD to move around.").y;
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "Use scroll wheel to change block in hand.").y;
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "Press ESCAPE to unlock mouse cursor").y;
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "Press R to run.").y;
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "Press F to fullscreen.").y;
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "Press P for chunk culling debug.").y;
         }
 
         glEnable(GL_DEPTH_TEST);
@@ -194,6 +221,7 @@ void Render_Setup()
     g_color_view_loc = glGetUniformLocation(g_color_shader, "u_View");
     g_color_projection_loc = glGetUniformLocation(g_color_shader, "u_Projection");
     g_color_color_loc = glGetUniformLocation(g_color_shader, "u_Color");
+    g_color_size_loc = glGetUniformLocation(g_color_shader, "u_Size");
 
     glUseProgram(g_postprocess_shader);
     glUniform4f(glGetUniformLocation(g_postprocess_shader, "u_WaterColor"), 0.4f, 0.4f, 0.9f, 1.0f);

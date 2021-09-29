@@ -524,6 +524,11 @@ void gameLoop() {
                 }
             }
 
+            if(Input_IsKeyJustPressed(SDLK_p))
+            {
+                g_draw_aabb_debug = !g_draw_aabb_debug;
+            }
+
             HandleMovement(delta);
 
             g_looking_at_block = 0;

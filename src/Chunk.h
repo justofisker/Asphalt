@@ -13,6 +13,7 @@
 
 typedef struct _Vertex Vertex;
 typedef struct _Mesh Mesh;
+typedef int ivec3[3];
 
 typedef struct _Chunk
 {
@@ -31,6 +32,8 @@ typedef struct _Chunk
     int transparent_index_count;
     char create_mesh;
     char locked;
+    ivec3 aabb_solid[2];
+    ivec3 aabb_transparent[2];
 } Chunk;
 
 void Chunk_SetChunkArraySlot(int x, int y, Chunk* chunk);
@@ -43,6 +46,7 @@ void Chunk_FreeChunk(Chunk *chunk);
 Chunk *Chunk_GetChunk(int x, int y);
 void Chunk_SetupGenerationThread();
 void Render_RenderChunks();
+void Chunk_RenderAABBDebug();
 unsigned int Chunk_GetBlockIdAt(int x, int y, int z);
 void Chunk_SetBlockIdAt(int x, int y, int z, unsigned int block);
 

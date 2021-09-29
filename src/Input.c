@@ -55,6 +55,11 @@ char Input_IsKeyPressedd(int key)
 
 char Input_IsKeyJustPressed(int key)
 {
+    if(key < 0 || key >= sizeof(frame_key_states) / sizeof(frame_key_states[0]))
+    {
+        printf("Failed to get key %d.\n", key);
+        return 0;
+    }
     return frame_key_states[key];
 }
 

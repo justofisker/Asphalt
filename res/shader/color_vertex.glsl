@@ -7,8 +7,11 @@ uniform mat4 u_Model;
 uniform mat4 u_View;
 uniform mat4 u_Projection;
 
+uniform vec3 u_Size;
+
 void main()
 {
-    gl_Position = u_Projection * u_View * u_Model * vec4(v_Position, 1.0);
+    vec3 scaled_position = vec3(v_Position.x * u_Size.x, v_Position.y * u_Size.y, v_Position.z * u_Size.z);
+    gl_Position = u_Projection * u_View * u_Model * vec4(scaled_position, 1.0);
     gl_Position.z = gl_Position.z - 0.0003;
 }
