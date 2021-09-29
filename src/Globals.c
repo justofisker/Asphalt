@@ -30,3 +30,4 @@ ivec3 g_look_block_pos;
 Font *g_font_arial;
 unsigned int g_fps;
 int g_block_selected;
+int g_chunks_drawn;

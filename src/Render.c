@@ -165,6 +165,9 @@ void Render_RenderWorld()
             
             text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "%s",
                                         glGetString(GL_RENDERER)).y;
+
+            text_pos = Text_RenderText(20, text_pos, (float[4]){1.0f, 1.0f, 1.0f, 1.0f}, g_font_arial, "Chunks Drawcalls: %d",
+                                        g_chunks_drawn).y;
         }
 
         glEnable(GL_DEPTH_TEST);

@@ -51,5 +51,6 @@ extern int g_height;
 extern int g_width;
 
 extern int g_target_framerate;
+extern int g_chunks_drawn;
 
 #endif // GLOBALS_H

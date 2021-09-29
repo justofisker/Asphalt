@@ -620,6 +620,7 @@ void Render_RenderChunks()
     glm_mat4_mul(g_projection, g_view, viewProj);
     vec4 planes[6];
     glm_frustum_planes(viewProj, planes);
+    g_chunks_drawn = 0;
 
     for(stage = 0; stage < 4; stage++) {
         if(stage == 3) glDisable(GL_CULL_FACE);
@@ -650,8 +651,10 @@ void Render_RenderChunks()
                         {
                             vec3 box[2] = { {chunk->x * CHUNK_SIZE_XZ - g_player_position[0], 0.0f - g_player_position[1], chunk->y * CHUNK_SIZE_XZ - g_player_position[2]},
                                             {chunk->x * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[0], CHUNK_SIZE_Y - g_player_position[1], chunk->y * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[2]} };
-                            if(glm_aabb_frustum(box, planes))
+                            if(glm_aabb_frustum(box, planes)) {
                                 Chunk_RenderChunk(chunk, 0);
+                                g_chunks_drawn++;
+                            }
                         }
                     }
                     break;
@@ -661,8 +664,10 @@ void Render_RenderChunks()
                         {
                             vec3 box[2] = { {chunk->x * CHUNK_SIZE_XZ - g_player_position[0], 0.0f - g_player_position[1], chunk->y * CHUNK_SIZE_XZ - g_player_position[2]},
                                             {chunk->x * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[0], CHUNK_SIZE_Y - g_player_position[1], chunk->y * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[2]} };
-                            if(glm_aabb_frustum(box, planes))
+                            if(glm_aabb_frustum(box, planes)) {
                                 Chunk_RenderChunk(chunk, 1);
+                                g_chunks_drawn++;
+                            }
                         }
                     }
                     break;
