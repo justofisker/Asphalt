@@ -8,10 +8,12 @@
 #include <string.h>
 #include <stdio.h>
 #include <cglm/cglm.h>
+#include <cglm/plane.h>
 #include <glad/glad.h>
 #include <SDL.h>
 #include "Block.h"
 #include <time.h>
+#include <math.h>
 
 typedef struct _Vertex
 {
@@ -614,6 +616,11 @@ void Render_RenderChunks()
 
     int x, y, stage;
 
+    mat4 viewProj;
+    glm_mat4_mul(g_projection, g_view, viewProj);
+    vec4 planes[6];
+    glm_frustum_planes(viewProj, planes);
+
     for(stage = 0; stage < 4; stage++) {
         if(stage == 3) glDisable(GL_CULL_FACE);
         for(x = 0; x < CHUNK_ARR_SIZE; x++)
@@ -641,7 +648,10 @@ void Render_RenderChunks()
                     if(chunk) {
                         if(chunk->mesh && chunk->mesh->index_count)
                         {
-                            Chunk_RenderChunk(chunk, 0);
+                            vec3 box[2] = { {chunk->x * CHUNK_SIZE_XZ - g_player_position[0], 0.0f - g_player_position[1], chunk->y * CHUNK_SIZE_XZ - g_player_position[2]},
+                                            {chunk->x * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[0], CHUNK_SIZE_Y - g_player_position[1], chunk->y * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[2]} };
+                            if(glm_aabb_frustum(box, planes))
+                                Chunk_RenderChunk(chunk, 0);
                         }
                     }
                     break;
@@ -649,7 +659,10 @@ void Render_RenderChunks()
                     if(chunk) {
                         if(chunk->transparent_mesh && chunk->transparent_mesh->index_count)
                         {
-                            Chunk_RenderChunk(chunk, 1);
+                            vec3 box[2] = { {chunk->x * CHUNK_SIZE_XZ - g_player_position[0], 0.0f - g_player_position[1], chunk->y * CHUNK_SIZE_XZ - g_player_position[2]},
+                                            {chunk->x * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[0], CHUNK_SIZE_Y - g_player_position[1], chunk->y * CHUNK_SIZE_XZ + CHUNK_SIZE_XZ - g_player_position[2]} };
+                            if(glm_aabb_frustum(box, planes))
+                                Chunk_RenderChunk(chunk, 1);
                         }
                     }
                     break;
