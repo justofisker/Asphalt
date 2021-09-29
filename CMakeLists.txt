@@ -72,4 +72,5 @@ target_include_directories(Asphalt PUBLIC
     "${PROJECT_SOURCE_DIR}/thirdparty/glad/include"
     "${PROJECT_SOURCE_DIR}/thirdparty/stb"
     "${PROJECT_SOURCE_DIR}/thirdparty/freetype/include"
+    "${PROJECT_SOURCE_DIR}/thirdparty/SDL/include"
     )
