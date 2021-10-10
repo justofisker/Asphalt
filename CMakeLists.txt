@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.8.0)
 project(Asphalt VERSION 0.1.0)
 
 if (WIN32)
@@ -60,6 +60,8 @@ else (EMSCRIPTEN)
         target_link_libraries(Asphalt OpenGL dl m)
     elseif (WIN32)
         add_executable(Asphalt WIN32 ${source})
+        set_target_properties(Asphalt PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+        set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Asphalt)
     endif (UNIX)
     
     add_subdirectory("${PROJECT_SOURCE_DIR}/thirdparty/freetype")
