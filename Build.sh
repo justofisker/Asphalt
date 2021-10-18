@@ -1,3 +1,3 @@
 pushd build/
-make
+make -j$(nproc)
 popd
