@@ -60,7 +60,11 @@ static void SetupGame()
     Render_SetupLookBlock();
     Text_Setup();
     Text_BeginCreateFont();
+#ifdef _WIN32
+    g_font_arial = Text_CreateFont("C:/Windows/Fonts/Arial.ttf", 24);
+#else
     g_font_arial = Text_CreateFont("res/fonts/Arial.ttf", 24);
+#endif
     Text_EndCreateFont();
 
     int w, h;
