@@ -4,7 +4,7 @@
 const char* Util_GetFileContent(const char *path, int *length);
 unsigned int Util_CompileShader(const char *vertex_path, const char *fragment_path);
 float Util_Perlin2D(float x, float y, float freq, int depth);
-int mod(int a, int b);
+inline int mod(int a, int b) { return (a % b + b) % b; }
 
 typedef float vec3[3];
 typedef int ivec3[3];

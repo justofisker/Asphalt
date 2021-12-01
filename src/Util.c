@@ -151,11 +151,6 @@ float Util_Perlin2D(float x, float y, float freq, int depth)
     return fin/div;
 }
 
-int mod(int a, int b)
-{
-    return (a % b + b) % b;
-}
-
 #define RAY_INC 0.01f
 
 void Util_RaycastToBlock(vec3 from, vec3 direction, float max_distance, char *hit_flags, ivec3* result)
