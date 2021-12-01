@@ -334,7 +334,7 @@ static void HandleMovement(float delta)
     }
         else
         {
-            float speed = 150.f;
+            float speed = 20.0f;
             vec3 direction = {0, 0, 0};
             // Fly
             if(!paused) {
