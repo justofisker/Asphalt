@@ -209,7 +209,7 @@ void Render_Setup()
     g_block_shader = Util_CompileShader("res/shader/block_vertex.glsl", "res/shader/block_fragment.glsl");
     g_postprocess_shader = Util_CompileShader("res/shader/postprocess_vertex.glsl", "res/shader/postprocess_fragment.glsl");
     g_color_shader = Util_CompileShader("res/shader/color_vertex.glsl", "res/shader/color_fragment.glsl");
-    g_texture = Texture_CreateTexture("res/texture/blocks.png", GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, 0, 0.0f);
+    g_texture = Texture_CreateTexture("res/texture/blocks.png", GL_NEAREST_MIPMAP_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, 4);
 
     g_block_model_loc = glGetUniformLocation(g_block_shader, "u_Model");
     g_block_view_loc = glGetUniformLocation(g_block_shader, "u_View");

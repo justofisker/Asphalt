@@ -4,7 +4,7 @@
 #include <stb/stb_image.h>
 #include <stdio.h>
 
-Texture* Texture_CreateTexture(const char* file_path, int texture_min_filter, int texture_mag_filter, int texture_wrap, char mipmap, float lod_bias)
+Texture* Texture_CreateTexture(const char* file_path, int texture_min_filter, int texture_mag_filter, int texture_wrap, int mipmax_max_level)
 {
     Texture *texture = malloc(sizeof(Texture));
 
@@ -21,14 +21,15 @@ Texture* Texture_CreateTexture(const char* file_path, int texture_min_filter, in
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texture_wrap);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texture_wrap);
 
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 10);
+
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_buffer);
 
-    //if(mipmap)
-    //{
-    //    printf("Mipmap!\n");
-    //    glGenerateMipmap(GL_TEXTURE_2D);
-    //    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, lod_bias);
-    //}
+    if(mipmax_max_level)
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 4);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
     
     glBindTexture(GL_TEXTURE_2D, 0);
 
