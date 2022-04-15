@@ -6,7 +6,7 @@
 #ifdef __EMSCRIPTEN__
     #define CHUNK_VIEW_DISTANCE 2
 #else
-    #define CHUNK_VIEW_DISTANCE 12
+    #define CHUNK_VIEW_DISTANCE 16
 #endif
 
 #include "Block.h"
