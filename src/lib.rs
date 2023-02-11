@@ -1,8 +1,9 @@
-use std::{io::BufReader, num::NonZeroU32};
+use std::{io::BufReader, num::NonZeroU32, vec};
 
 use camera::{Camera, CameraController, CameraUniform};
+use chunk::Chunk;
 use instant::{Duration, Instant};
-use wgpu::util::DeviceExt;
+use wgpu::{util::DeviceExt, BindGroupLayoutEntry};
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -120,7 +121,7 @@ struct State {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     render_pipeline: wgpu::RenderPipeline,
-    cube_mesh: mesh::Mesh,
+    chunks: Vec<Vec<Chunk>>,
     diffuse_bind_group: wgpu::BindGroup,
     diffuse_texture: texture::Texture,
     depth_texture: texture::Texture,
@@ -261,7 +262,12 @@ impl State {
             label: Some("diffuse_bind_group"),
         });
 
-        let camera = Camera::new(config.width as f32 / config.height as f32, 90.0, 0.1, 100.0);
+        let camera = Camera::new(
+            config.width as f32 / config.height as f32,
+            90.0,
+            0.1,
+            1000.0,
+        );
 
         let camera_controller = CameraController::new(7.5);
 
@@ -290,7 +296,7 @@ impl State {
             });
 
         let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &&camera_bind_group_layout,
+            layout: &camera_bind_group_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: camera_buffer.as_entire_binding(),
@@ -300,10 +306,29 @@ impl State {
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
 
+        let model_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Model Bind Group Layout"),
+                entries: &[BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+            });
+
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout],
+                bind_group_layouts: &[
+                    &texture_bind_group_layout,
+                    &camera_bind_group_layout,
+                    &model_bind_group_layout,
+                ],
                 push_constant_ranges: &[],
             });
 
@@ -348,7 +373,22 @@ impl State {
             multiview: None,
         });
 
-        let cube_mesh = chunk::Chunk::new().build_mesh(&device);
+        let mut chunks: Vec<Vec<Chunk>> = vec![];
+
+        for x in 0..16 {
+            let mut row: Vec<Chunk> = vec![];
+            for y in 0..16 {
+                let mut chunk = chunk::Chunk::new((x - 8, y - 8).into());
+                row.push(chunk);
+            }
+            chunks.push(row);
+        }
+
+        for x in 0..16 {
+            for z in 0..16 {
+                Chunk::build_mesh_in_context(x, z, &device, &model_bind_group_layout, &mut chunks);
+            }
+        }
 
         Self {
             window,
@@ -358,7 +398,7 @@ impl State {
             config,
             size,
             render_pipeline,
-            cube_mesh,
+            chunks,
             diffuse_bind_group,
             diffuse_texture,
             depth_texture,
@@ -438,7 +478,7 @@ impl State {
                     },
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &&self.depth_texture.view,
+                    view: &self.depth_texture.view,
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: true,
@@ -451,7 +491,11 @@ impl State {
             render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
 
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
-            self.cube_mesh.draw(&mut render_pass);
+            for row in &mut self.chunks {
+                for chunk in row {
+                    chunk.draw(&mut render_pass);
+                }
+            }
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));

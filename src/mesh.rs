@@ -32,7 +32,7 @@ pub struct Mesh {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: Option<wgpu::Buffer>,
     pub item_count: u32,
-    pub aabb: [[f32; 3]; 2]
+    pub aabb: [[f32; 3]; 2],
 }
 
 impl Mesh {
@@ -89,8 +89,8 @@ impl Mesh {
             usage: wgpu::BufferUsages::VERTEX,
         });
 
-        let mut index_buffer : Option<wgpu::Buffer> = None;
-        let mut item_count : u32 = 0;
+        let mut index_buffer: Option<wgpu::Buffer> = None;
+        let mut item_count: u32 = 0;
 
         if let Some(indices) = indices {
             index_buffer = Some(device.create_buffer_init(&BufferInitDescriptor {
@@ -133,7 +133,7 @@ impl Mesh {
         }
     }
 
-    pub fn draw<'a: 'b, 'b>(&'a self, render_pass: &'b mut RenderPass<'a>) {
+    pub fn draw<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         if let Some(index_buffer) = &self.index_buffer {
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);

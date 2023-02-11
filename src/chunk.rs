@@ -1,4 +1,5 @@
-use wgpu::Device;
+use cgmath::{Matrix4, Vector2};
+use wgpu::{util::DeviceExt, BindGroupLayout, Device, RenderPass};
 
 use crate::mesh::{Mesh, Vertex};
 
@@ -61,10 +62,22 @@ impl Block {
 
 pub struct Chunk {
     blocks: [[[Block; CHUNK_SIZE_XZ]; CHUNK_SIZE_Y]; CHUNK_SIZE_XZ],
+    solid_mesh: Option<Mesh>,
+    model_buffer: Option<wgpu::Buffer>,
+    model_bind_group: Option<wgpu::BindGroup>,
+    chunk_position: Vector2<i32>,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct ModelUniform {
+    // We can't use cgmath with bytemuck directly so we'll have
+    // to convert the Matrix4 into a 4x4 f32 array
+    pub view_proj: [[f32; 4]; 4],
 }
 
 impl Chunk {
-    pub fn new() -> Self {
+    pub fn new(chunk_position: Vector2<i32>) -> Self {
         let mut blocks = [[[Block::Air; CHUNK_SIZE_XZ]; CHUNK_SIZE_Y]; CHUNK_SIZE_XZ];
 
         for x in 0..CHUNK_SIZE_XZ {
@@ -78,10 +91,61 @@ impl Chunk {
             }
         }
 
-        Chunk { blocks }
+        Chunk {
+            blocks,
+            solid_mesh: None,
+            model_buffer: None,
+            model_bind_group: None,
+            chunk_position,
+        }
     }
 
-    pub fn build_mesh(&self, device: &Device) -> Mesh {
+    pub fn build_mesh(
+        &mut self,
+        device: &Device,
+        model_layout: &BindGroupLayout,
+        neighbor_north: Option<&Chunk>,
+        neighbor_east: Option<&Chunk>,
+        neighbor_south: Option<&Chunk>,
+        neighbor_west: Option<&Chunk>,
+    ) {
+        let model = ModelUniform {
+            view_proj: Matrix4::from_translation(
+                (
+                    self.chunk_position.x as f32 * CHUNK_SIZE_XZ as f32,
+                    0.0,
+                    self.chunk_position.y as f32 * CHUNK_SIZE_XZ as f32,
+                )
+                    .into(),
+            )
+            .into(),
+        };
+
+        if let Some(model_bind_group) = &self.model_bind_group {
+            if let Some(model_buffer) = &self.model_buffer {
+                todo!()
+            }
+            unreachable!()
+        } else {
+            let model_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(&[model]),
+                usage: wgpu::BufferUsages::UNIFORM,
+            });
+
+            let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: model_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: model_buffer.as_entire_binding(),
+                }],
+                label: Some("camera_bind_group"),
+            });
+
+            self.model_buffer = Some(model_buffer);
+            self.model_bind_group = Some(camera_bind_group);
+        }
+
         let mut vertices: Vec<Vertex> = vec![];
 
         for x in 0..CHUNK_SIZE_XZ {
@@ -91,7 +155,11 @@ impl Chunk {
                     if !block.is_solid() {
                         continue;
                     }
-                    if x == 0 || !self.blocks[x - 1][y][z].is_solid() {
+                    if x == 0
+                        && (!neighbor_west.is_some()
+                            || !neighbor_west.unwrap().blocks[CHUNK_SIZE_XZ - 1][y][z].is_solid())
+                        || (x != 0 && !self.blocks[x - 1][y][z].is_solid())
+                    {
                         // West
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::West);
                         #[rustfmt::skip]
@@ -102,7 +170,11 @@ impl Chunk {
                             Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
                         ]);
                     }
-                    if x == CHUNK_SIZE_XZ - 1 || !self.blocks[x + 1][y][z].is_solid() {
+                    if x == CHUNK_SIZE_XZ - 1
+                        && (!neighbor_east.is_some()
+                            || !neighbor_east.unwrap().blocks[0][y][z].is_solid())
+                        || (x != CHUNK_SIZE_XZ - 1 && !self.blocks[x + 1][y][z].is_solid())
+                    {
                         // East
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::East);
                         #[rustfmt::skip]
@@ -135,7 +207,10 @@ impl Chunk {
                             Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
                         ]);
                     }
-                    if z == 0 || !self.blocks[x][y][z - 1].is_solid() {
+                    if z == 0
+                        && (!neighbor_south.is_some()
+                            || !neighbor_south.unwrap().blocks[x][y][CHUNK_SIZE_XZ - 1].is_solid())
+                        || (z != 0 && !self.blocks[x][y][z - 1].is_solid()) {
                         // South
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::South);
                         #[rustfmt::skip]
@@ -146,7 +221,10 @@ impl Chunk {
                             Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
                         ]);
                     }
-                    if z == CHUNK_SIZE_XZ - 1 || !self.blocks[x][y][z + 1].is_solid() {
+                    if z == CHUNK_SIZE_XZ - 1
+                        && (!neighbor_north.is_some()
+                            || !neighbor_north.unwrap().blocks[x][y][0].is_solid())
+                        || (z != CHUNK_SIZE_XZ - 1 && !self.blocks[x][y][z + 1].is_solid()) {
                         // North
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::North);
                         #[rustfmt::skip]
@@ -179,6 +257,53 @@ impl Chunk {
             indices[i * 6 + 5] = 0 + 4 * i as u32;
         }
 
-        Mesh::from_data(device, vertices.as_slice(), Some(indices.as_slice()))
+        self.solid_mesh = Some(Mesh::from_data(
+            device,
+            vertices.as_slice(),
+            Some(indices.as_slice()),
+        ));
+    }
+
+    pub fn build_mesh_in_context(x: usize, z: usize, device: &Device, model_layout: &BindGroupLayout, chunks: &mut Vec<Vec<Chunk>>) {
+        let (before_x, after_x) = chunks.split_at_mut(x);
+        let (at_x, after_x) = after_x.split_at_mut(1);
+        let (before_z, after_z) = at_x[0].split_at_mut(z);
+        let (at_z, after_z) = after_z.split_at_mut(1);
+        let chunk = &mut at_z[0];
+
+        let mut neighbor_west: Option<&Chunk> = None;
+        if x != 0 {
+            neighbor_west = Some(&before_x[0][z]);
+        }
+        let mut neighbor_east: Option<&Chunk> = None;
+        if x != 16 - 1 {
+            neighbor_east = Some(&after_x[0][z]);
+        }
+        let mut neighbor_south: Option<&Chunk> = None;
+        if z != 0 {
+            neighbor_south = Some(&before_z[0]);
+        }
+        let mut neighbor_north: Option<&Chunk> = None;
+        if z != 16 - 1 {
+            neighbor_north = Some(&after_z[0]);
+        }
+
+        chunk.build_mesh(
+            &device,
+            &model_layout,
+            neighbor_north,
+            neighbor_east,
+            neighbor_south,
+            neighbor_west,
+        );
+    }
+
+    pub fn draw<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+        if let Some(solid_mesh) = &self.solid_mesh {
+            if let Some(model_bind_group) = &self.model_bind_group {
+                render_pass.set_bind_group(2, model_bind_group, &[]);
+                solid_mesh.draw(render_pass);
+            }
+        }
     }
 }
