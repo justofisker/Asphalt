@@ -20,7 +20,7 @@ pub struct Camera {
 impl Camera {
     pub fn new(aspect: f32, fovy: f32, znear: f32, zfar: f32) -> Self {
         Camera {
-            position: (5.0, 5.0, 5.0).into(),
+            position: (10.0, 10.0, 10.0).into(),
             rotation: Euler {
                 x: Deg(-45.0).into(),
                 y: Deg(225.0).into(),

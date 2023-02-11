@@ -6,7 +6,7 @@ use wgpu::util::DeviceExt;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
-    window::{Window, WindowBuilder},
+    window::{Icon, Window, WindowBuilder},
 };
 
 mod camera;
@@ -37,7 +37,14 @@ pub async fn run() {
         .with_title("Aspahlt")
         .build(&event_loop)
         .unwrap();
+
     window.set_ime_allowed(true);
+
+    if let Ok(img) = image::load_from_memory(include_bytes!("../res/icon/icon-256.png")) {
+        window.set_window_icon(
+            Icon::from_rgba(img.to_rgba8().to_vec(), img.width(), img.height()).ok(),
+        );
+    }
 
     #[cfg(target_arch = "wasm32")]
     {

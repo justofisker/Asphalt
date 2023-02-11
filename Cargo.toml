@@ -21,6 +21,9 @@ anyhow = "1.0"
 cgmath = "0.18"
 instant = "0.1"
 
+[build-dependencies]
+embed-resource = "1.8"
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"
 console_log = "0.2"
