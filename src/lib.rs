@@ -1,4 +1,4 @@
-use std::num::NonZeroU32;
+use std::{num::NonZeroU32, io::BufReader};
 
 use camera::{Camera, CameraController, CameraUniform};
 use instant::{Duration, Instant};
@@ -193,9 +193,28 @@ impl State {
 
         surface.configure(&device, &config);
 
-        let diffuse_bytes = include_bytes!("../res/texture/blocks.png");
-        let diffuse_texture =
-            texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "blocks.png").unwrap();
+
+        let mut diffuse_texture : Option<texture::Texture> = None;
+
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let diffuse_bytes = include_bytes!("../res/texture/blocks.png");
+            diffuse_texture = Some(texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "blocks.png").unwrap());
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Ok(file) = std::fs::File::open("res/texture/blocks.png") {
+            let reader = BufReader::new(file);
+            if let Ok(img) = image::load(reader, image::ImageFormat::Png) {
+                diffuse_texture = Some(texture::Texture::from_image(&device, &queue, &img, Some("blocks.png")).unwrap());
+            }
+        }
+
+        if diffuse_texture.is_none() {
+            panic!("Failed to load \"res/texture/blocks.png\"");
+        }
+
+        let diffuse_texture = diffuse_texture.unwrap();
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {

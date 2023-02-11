@@ -36,13 +36,13 @@ impl Block {
     fn get_tex_position(&self, direction: Direction) -> (u32, u32) {
         match self {
             Block::Grass => match direction {
-                Direction::North | Direction::East | Direction::South | Direction::West => (1, 0),
                 Direction::Up => (0, 0),
                 Direction::Down => (2, 0),
+                _ => (1, 0),
             },
             Block::Dirt => (2, 0),
             Block::Bedrock => (6, 0),
-            _ => (0, 0),
+            _ => (7, 7),
         }
     }
 
