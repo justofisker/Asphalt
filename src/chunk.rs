@@ -11,8 +11,11 @@ const TEX_CELL_SIZE_XY: f32 = 1.0 / TEX_CELL_COUNT_XY as f32;
 #[derive(Clone, Copy, PartialEq)]
 pub enum Block {
     Air,
-    Dirt,
     Grass,
+    Dirt,
+    Stone,
+    Water,
+    Sand,
     Bedrock,
 }
 
@@ -35,14 +38,17 @@ impl Block {
 
     fn get_tex_position(&self, direction: Direction) -> (u32, u32) {
         match self {
-            Block::Grass => match direction {
+            Self::Grass => match direction {
                 Direction::Up => (0, 0),
                 Direction::Down => (2, 0),
                 _ => (1, 0),
             },
-            Block::Dirt => (2, 0),
-            Block::Bedrock => (6, 0),
-            _ => (7, 7),
+            Self::Dirt => (2, 0),
+            Self::Stone => (3, 0),
+            Self::Water => (4, 0),
+            Self::Sand => (5, 0),
+            Self::Bedrock => (6, 0),
+            Self::Air => (7, 7),
         }
     }
 
