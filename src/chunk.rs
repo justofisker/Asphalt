@@ -70,9 +70,10 @@ impl Chunk {
         for x in 0..CHUNK_SIZE_XZ {
             for z in 0..CHUNK_SIZE_XZ {
                 blocks[x][0][z] = Block::Bedrock;
-                for y in 1..5 {
-                    blocks[x][y][z] = Block::Dirt;
+                for y in 1..4 {
+                    blocks[x][y][z] = Block::Stone;
                 }
+                blocks[x][4][z] = Block::Dirt;
                 blocks[x][5][z] = Block::Grass;
             }
         }
@@ -178,6 +179,6 @@ impl Chunk {
             indices[i * 6 + 5] = 0 + 4 * i as u32;
         }
 
-        Mesh::from_data(device, vertices.as_slice(), indices.as_slice())
+        Mesh::from_data(device, vertices.as_slice(), Some(indices.as_slice()))
     }
 }

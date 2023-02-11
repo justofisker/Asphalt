@@ -1,3 +1,6 @@
+use std::f32::consts::E;
+
+use cgmath::Vector3;
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     Device, RenderPass,
@@ -29,6 +32,7 @@ pub struct Mesh {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: Option<wgpu::Buffer>,
     pub item_count: u32,
+    pub aabb: [[f32; 3]; 2]
 }
 
 impl Mesh {
@@ -71,32 +75,61 @@ impl Mesh {
             20, 22, 21, 23, 22, 20,
         ];
 
-        Self::from_data(device, vertices, INDICES)
+        Self::from_data(device, vertices, Some(INDICES))
     }
 
     pub fn create_cube_uniform(device: &wgpu::Device, size: f32) -> Self {
         Self::create_cube(device, size, size, size)
     }
 
-    pub fn from_data(device: &Device, vertices: &[Vertex], indices: &[u32]) -> Self {
+    pub fn from_data(device: &Device, vertices: &[Vertex], indices: Option<&[u32]>) -> Self {
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(vertices),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
-        let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(indices),
-            usage: wgpu::BufferUsages::INDEX,
-        });
+        let mut index_buffer : Option<wgpu::Buffer> = None;
+        let mut item_count : u32 = 0;
 
-        let item_count = indices.len() as u32;
+        if let Some(indices) = indices {
+            index_buffer = Some(device.create_buffer_init(&BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(indices),
+                usage: wgpu::BufferUsages::INDEX,
+            }));
+
+            item_count = indices.len() as u32;
+        } else {
+            item_count = vertices.len() as u32;
+        }
+
+        let mut aabb_low = vertices[0].position;
+        let mut aabb_high = vertices[0].position;
+
+        for vertex in vertices.iter() {
+            if aabb_low[0] > vertex.position[0] {
+                aabb_low[0] = vertex.position[0];
+            } else if aabb_high[0] < vertex.position[0] {
+                aabb_high[0] = vertex.position[0];
+            }
+            if aabb_low[1] > vertex.position[1] {
+                aabb_low[1] = vertex.position[1];
+            } else if aabb_high[1] < vertex.position[1] {
+                aabb_high[1] = vertex.position[1];
+            }
+            if aabb_low[2] > vertex.position[2] {
+                aabb_low[2] = vertex.position[2];
+            } else if aabb_high[2] < vertex.position[2] {
+                aabb_high[2] = vertex.position[2];
+            }
+        }
 
         Mesh {
             vertex_buffer,
-            index_buffer: Some(index_buffer),
+            index_buffer: index_buffer,
             item_count,
+            aabb: [aabb_low, aabb_high],
         }
     }
 
