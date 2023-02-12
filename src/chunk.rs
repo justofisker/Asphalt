@@ -1,4 +1,5 @@
 use cgmath::{Matrix4, Vector2};
+use noise::NoiseFn;
 use wgpu::{util::DeviceExt, BindGroupLayout, Device, RenderPass};
 
 use crate::mesh::{Mesh, Vertex};
@@ -77,17 +78,27 @@ pub struct ModelUniform {
 }
 
 impl Chunk {
-    pub fn new(chunk_position: Vector2<i32>) -> Self {
+    pub fn new(chunk_position: Vector2<i32>, perlin: &noise::Perlin) -> Self {
         let mut blocks = [[[Block::Air; CHUNK_SIZE_XZ]; CHUNK_SIZE_Y]; CHUNK_SIZE_XZ];
 
         for x in 0..CHUNK_SIZE_XZ {
             for z in 0..CHUNK_SIZE_XZ {
+
+                let xp = (chunk_position.x * CHUNK_SIZE_XZ as i32 + x as i32) as f64 / 10.0;
+                let zp = (chunk_position.y * CHUNK_SIZE_XZ as i32 + z as i32) as f64 / 10.0;
+
+                let perlin_value = (1.0 + perlin.get([xp, zp])) / 2.0;
+
+                let height = 5 + (perlin_value * 10.0) as usize;
+
+                // println!("[{}, {}] {}", xp, zp, perlin_value);
+                
                 blocks[x][0][z] = Block::Bedrock;
-                for y in 1..4 {
+                for y in 1..height {
                     blocks[x][y][z] = Block::Stone;
                 }
-                blocks[x][4][z] = Block::Dirt;
-                blocks[x][5][z] = Block::Grass;
+                //== blocks[x][4][z] = Block::Dirt;
+                blocks[x][height][z] = Block::Grass;
             }
         }
 
@@ -148,6 +159,11 @@ impl Chunk {
 
         let mut vertices: Vec<Vertex> = vec![];
 
+        const TINT_WEST_EAST: f32 = 0.8;
+        const TINT_SOUTH_NORTH: f32 = 0.6;
+        const TINT_UP: f32 = 1.0;
+        const TINT_DOWN: f32 = 0.4;
+
         for x in 0..CHUNK_SIZE_XZ {
             for y in 0..CHUNK_SIZE_Y {
                 for z in 0..CHUNK_SIZE_XZ {
@@ -164,10 +180,10 @@ impl Chunk {
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::West);
                         #[rustfmt::skip]
                         vertices.extend([
-                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
+                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_WEST_EAST},
+                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_WEST_EAST},
+                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_WEST_EAST},
+                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_WEST_EAST},
                         ]);
                     }
                     if x == CHUNK_SIZE_XZ - 1
@@ -179,10 +195,10 @@ impl Chunk {
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::East);
                         #[rustfmt::skip]
                         vertices.extend([
-                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
+                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_WEST_EAST},
+                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_WEST_EAST},
+                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_WEST_EAST},
+                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_WEST_EAST},
                         ]);
                     }
                     if y == 0 || !self.blocks[x][y - 1][z].is_solid() {
@@ -190,10 +206,10 @@ impl Chunk {
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::Down);
                         #[rustfmt::skip]
                         vertices.extend([
-                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
+                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_DOWN},
+                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_DOWN},
+                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_DOWN},
+                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_DOWN},
                         ]);
                     }
                     if y == CHUNK_SIZE_Y - 1 || !self.blocks[x][y + 1][z].is_solid() {
@@ -201,10 +217,10 @@ impl Chunk {
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::Up);
                         #[rustfmt::skip]
                         vertices.extend([
-                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
+                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_UP},
+                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_UP},
+                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_UP},
+                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_UP},
                         ]);
                     }
                     if z == 0
@@ -215,10 +231,10 @@ impl Chunk {
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::South);
                         #[rustfmt::skip]
                         vertices.extend([
-                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
+                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_SOUTH_NORTH},
+                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_SOUTH_NORTH},
+                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_SOUTH_NORTH},
+                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 0.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_SOUTH_NORTH},
                         ]);
                     }
                     if z == CHUNK_SIZE_XZ - 1
@@ -229,10 +245,10 @@ impl Chunk {
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::North);
                         #[rustfmt::skip]
                         vertices.extend([
-                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
-                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY]},
+                            Vertex {position: [ 0.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_SOUTH_NORTH},
+                            Vertex {position: [ 1.0 + x as f32, 0.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 1.0 * TEX_CELL_SIZE_XY], tint: TINT_SOUTH_NORTH},
+                            Vertex {position: [ 1.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 1.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_SOUTH_NORTH},
+                            Vertex {position: [ 0.0 + x as f32, 1.0 + y as f32, 1.0 + z as f32 ], tex_coords: [ tex_x + 0.0 * TEX_CELL_SIZE_XY , tex_y + 0.0 * TEX_CELL_SIZE_XY], tint: TINT_SOUTH_NORTH},
                         ]);
                     }
                 }
@@ -273,7 +289,7 @@ impl Chunk {
 
         let mut neighbor_west: Option<&Chunk> = None;
         if x != 0 {
-            neighbor_west = Some(&before_x[0][z]);
+            neighbor_west = Some(&before_x[x - 1][z]);
         }
         let mut neighbor_east: Option<&Chunk> = None;
         if x != 16 - 1 {
@@ -281,7 +297,7 @@ impl Chunk {
         }
         let mut neighbor_south: Option<&Chunk> = None;
         if z != 0 {
-            neighbor_south = Some(&before_z[0]);
+            neighbor_south = Some(&before_z[z - 1]);
         }
         let mut neighbor_north: Option<&Chunk> = None;
         if z != 16 - 1 {

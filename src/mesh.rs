@@ -11,11 +11,12 @@ use wgpu::{
 pub struct Vertex {
     pub position: [f32; 3],
     pub tex_coords: [f32; 2],
+    pub tint: f32,
 }
 
 impl Vertex {
-    const ATTRIBS: [wgpu::VertexAttribute; 2] =
-        wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2];
+    const ATTRIBS: [wgpu::VertexAttribute; 3] =
+        wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2, 2 => Float32];
 
     pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         use std::mem;
@@ -36,52 +37,6 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn create_cube(device: &wgpu::Device, width: f32, height: f32, depth: f32) -> Self {
-        #[rustfmt::skip]
-        let vertices: &[Vertex] = &[
-            Vertex { position: [-0.5 * width, -0.5 * height,  0.5 * depth], tex_coords: [1.0, 1.0] },
-            Vertex { position: [ 0.5 * width, -0.5 * height,  0.5 * depth], tex_coords: [0.0, 1.0] },
-            Vertex { position: [ 0.5 * width,  0.5 * height,  0.5 * depth], tex_coords: [0.0, 0.0] },
-            Vertex { position: [-0.5 * width,  0.5 * height,  0.5 * depth], tex_coords: [1.0, 0.0] },
-            Vertex { position: [-0.5 * width, -0.5 * height, -0.5 * depth], tex_coords: [1.0, 1.0] },
-            Vertex { position: [ 0.5 * width, -0.5 * height, -0.5 * depth], tex_coords: [0.0, 1.0] },
-            Vertex { position: [ 0.5 * width,  0.5 * height, -0.5 * depth], tex_coords: [0.0, 0.0] },
-            Vertex { position: [-0.5 * width,  0.5 * height, -0.5 * depth], tex_coords: [1.0, 0.0] },
-            Vertex { position: [ 0.5 * width, -0.5 * height, -0.5 * depth], tex_coords: [1.0, 1.0] },
-            Vertex { position: [ 0.5 * width, -0.5 * height,  0.5 * depth], tex_coords: [0.0, 1.0] },
-            Vertex { position: [ 0.5 * width,  0.5 * height,  0.5 * depth], tex_coords: [0.0, 0.0] },
-            Vertex { position: [ 0.5 * width,  0.5 * height, -0.5 * depth], tex_coords: [1.0, 0.0] },
-            Vertex { position: [-0.5 * width, -0.5 * height, -0.5 * depth], tex_coords: [1.0, 1.0] },
-            Vertex { position: [-0.5 * width, -0.5 * height,  0.5 * depth], tex_coords: [0.0, 1.0] },
-            Vertex { position: [-0.5 * width,  0.5 * height,  0.5 * depth], tex_coords: [0.0, 0.0] },
-            Vertex { position: [-0.5 * width,  0.5 * height, -0.5 * depth], tex_coords: [1.0, 0.0] },
-            Vertex { position: [-0.5 * width,  0.5 * height, -0.5 * depth], tex_coords: [1.0, 0.0] },
-            Vertex { position: [-0.5 * width,  0.5 * height,  0.5 * depth], tex_coords: [0.0, 0.0] },
-            Vertex { position: [ 0.5 * width,  0.5 * height,  0.5 * depth], tex_coords: [0.0, 1.0] },
-            Vertex { position: [ 0.5 * width,  0.5 * height, -0.5 * depth], tex_coords: [1.0, 1.0] },
-            Vertex { position: [-0.5 * width, -0.5 * height, -0.5 * depth], tex_coords: [1.0, 0.0] },
-            Vertex { position: [-0.5 * width, -0.5 * height,  0.5 * depth], tex_coords: [0.0, 0.0] },
-            Vertex { position: [ 0.5 * width, -0.5 * height,  0.5 * depth], tex_coords: [0.0, 1.0] },
-            Vertex { position: [ 0.5 * width, -0.5 * height, -0.5 * depth], tex_coords: [1.0, 1.0] },
-        ];
-
-        #[rustfmt::skip]
-        const INDICES: &[u32] = &[
-            0, 1, 2, 2, 3, 0,
-            4, 6, 5, 7, 6, 4,
-            8, 10, 9, 11, 10, 8,
-            12, 13, 14, 14, 15, 12,
-            16, 17, 18, 18, 19, 16,
-            20, 22, 21, 23, 22, 20,
-        ];
-
-        Self::from_data(device, vertices, Some(INDICES))
-    }
-
-    pub fn create_cube_uniform(device: &wgpu::Device, size: f32) -> Self {
-        Self::create_cube(device, size, size, size)
-    }
-
     pub fn from_data(device: &Device, vertices: &[Vertex], indices: Option<&[u32]>) -> Self {
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: None,

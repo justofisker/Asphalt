@@ -3,6 +3,7 @@ use std::{io::BufReader, num::NonZeroU32, vec};
 use camera::{Camera, CameraController, CameraUniform};
 use chunk::Chunk;
 use instant::{Duration, Instant};
+use noise::NoiseFn;
 use wgpu::{util::DeviceExt, BindGroupLayoutEntry};
 use winit::{
     event::*,
@@ -375,10 +376,12 @@ impl State {
 
         let mut chunks: Vec<Vec<Chunk>> = vec![];
 
+        let perlin = noise::Perlin::new(0);
+
         for x in 0..16 {
             let mut row: Vec<Chunk> = vec![];
             for y in 0..16 {
-                let mut chunk = chunk::Chunk::new((x - 8, y - 8).into());
+                let mut chunk = chunk::Chunk::new((x - 8, y - 8).into(), &perlin);
                 row.push(chunk);
             }
             chunks.push(row);

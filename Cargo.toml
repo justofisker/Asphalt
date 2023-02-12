@@ -20,6 +20,7 @@ image = { version = "0.24", default-features = false, features = [ "png", "jpeg"
 anyhow = "1.0"
 cgmath = "0.18"
 instant = "0.1"
+noise = "0.8"
 
 [build-dependencies]
 embed-resource = "1.8"
