@@ -6,6 +6,7 @@ use instant::{Duration, Instant};
 use noise::NoiseFn;
 use rand::Rng;
 use wgpu::{util::DeviceExt, BindGroupLayoutEntry};
+use wgpu_glyph::{ab_glyph::{self, FontArc}, GlyphBrushBuilder, GlyphBrush, Section, Text};
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -106,7 +107,7 @@ pub async fn run() {
             let dt = now - last_render_time;
             last_render_time = now;
             state.update(dt);
-            match state.render() {
+            match state.render(dt) {
                 Ok(_) => {}
                 Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
                 Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
@@ -138,6 +139,8 @@ struct State {
     camera_bind_group: wgpu::BindGroup,
     window: Window,
     clear_color: wgpu::Color,
+    glyph_brush: GlyphBrush<()>,
+    staging_belt: wgpu::util::StagingBelt,
 }
 
 impl State {
@@ -398,6 +401,12 @@ impl State {
             }
         }
 
+        let notosans = ab_glyph::FontArc::try_from_slice(include_bytes!("../res/font/NotoSans-Regular.ttf")).unwrap();
+
+        let glyph_brush = GlyphBrushBuilder::using_font(notosans).build(&device, surface_format);
+
+        let staging_belt = wgpu::util::StagingBelt::new(1024);
+
         Self {
             window,
             surface,
@@ -421,6 +430,8 @@ impl State {
                 b: 1.0,
                 a: 1.0,
             },
+            glyph_brush,
+            staging_belt,
         }
     }
 
@@ -480,7 +491,7 @@ impl State {
         );
     }
 
-    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    fn render(&mut self, delta: Duration) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
 
         let view = output
@@ -525,8 +536,24 @@ impl State {
             }
         }
 
+        let size = self.window.inner_size();
+
+        self.glyph_brush.queue(Section {
+            screen_position: (20.0, 20.0),
+            bounds: (size.width as f32, size.height as f32),
+            text: vec![Text::new(format!("FPS: {}", (1.0 / delta.as_secs_f64()) as u32).as_str())
+                .with_color([1.0, 1.0, 1.0, 1.0])
+                .with_scale(40.0)],
+            ..Default::default()
+        });
+
+        let _ = self.glyph_brush.draw_queued(&self.device, &mut self.staging_belt, &mut encoder, &view, size.width, size.height);
+
+        self.staging_belt.finish();
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
+
+        self.staging_belt.recall();
 
         Ok(())
     }

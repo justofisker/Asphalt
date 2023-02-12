@@ -33,7 +33,7 @@ pub enum Direction {
 impl Block {
     pub fn is_solid(&self) -> bool {
         match self {
-            Block::Air => false,
+            Self::Air | Self::Water => false,
             _ => true,
         }
     }
@@ -83,8 +83,8 @@ impl Chunk {
 
         for x in 0..CHUNK_SIZE_XZ {
             for z in 0..CHUNK_SIZE_XZ {
-                let xp = (chunk_position.x * CHUNK_SIZE_XZ as i32 + x as i32) as f64 / 10.0;
-                let zp = (chunk_position.y * CHUNK_SIZE_XZ as i32 + z as i32) as f64 / 10.0;
+                let xp = (chunk_position.x * CHUNK_SIZE_XZ as i32 + x as i32) as f64 / 17.0;
+                let zp = (chunk_position.y * CHUNK_SIZE_XZ as i32 + z as i32) as f64 / 17.0;
 
                 let perlin_value = (1.0 + perlin.get([xp, zp])) / 2.0;
 
@@ -298,18 +298,12 @@ impl Chunk {
         if x != 0 {
             neighbor_west = Some(&before_x[x - 1][z]);
         }
-        let mut neighbor_east: Option<&Chunk> = None;
-        if x != 16 - 1 {
-            neighbor_east = Some(&after_x[0][z]);
-        }
+        let neighbor_east = after_x.get(0).map_or(None, |c| c.get(z));
         let mut neighbor_south: Option<&Chunk> = None;
         if z != 0 {
             neighbor_south = Some(&before_z[z - 1]);
         }
-        let mut neighbor_north: Option<&Chunk> = None;
-        if z != 16 - 1 {
-            neighbor_north = Some(&after_z[0]);
-        }
+        let neighbor_north = after_z.get(0);
 
         chunk.build_mesh(
             &device,

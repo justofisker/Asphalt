@@ -22,6 +22,7 @@ cgmath = "0.18"
 instant = "0.1"
 noise = "0.8"
 rand = "0.8"
+wgpu_glyph = { git = "https://github.com/sconybeare/wgpu_glyph", branch="wgpu-0.15" }
 
 [build-dependencies]
 embed-resource = "1.8"
