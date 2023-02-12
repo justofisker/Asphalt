@@ -4,11 +4,12 @@ use camera::{Camera, CameraController, CameraUniform};
 use chunk::Chunk;
 use instant::{Duration, Instant};
 use noise::NoiseFn;
+use rand::Rng;
 use wgpu::{util::DeviceExt, BindGroupLayoutEntry};
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
-    window::{Icon, Window, WindowBuilder},
+    window::{Fullscreen, Icon, Window, WindowBuilder},
 };
 
 mod camera;
@@ -39,6 +40,9 @@ pub async fn run() {
         .with_title("Aspahlt")
         .build(&event_loop)
         .unwrap();
+
+    let _ = window.set_cursor_grab(winit::window::CursorGrabMode::Confined);
+    window.set_cursor_visible(false);
 
     window.set_ime_allowed(true);
 
@@ -77,15 +81,16 @@ pub async fn run() {
             if !state.input(event) {
                 match event {
                     WindowEvent::CloseRequested
-                    | WindowEvent::KeyboardInput {
-                        input:
-                            KeyboardInput {
-                                state: ElementState::Pressed,
-                                virtual_keycode: Some(VirtualKeyCode::Escape),
-                                ..
-                            },
-                        ..
-                    } => *control_flow = ControlFlow::Exit,
+                    // | WindowEvent::KeyboardInput {
+                    //     input:
+                    //         KeyboardInput {
+                    //             state: ElementState::Pressed,
+                    //             virtual_keycode: Some(VirtualKeyCode::Escape),
+                    //             ..
+                    //         },
+                    //     ..
+                    // }
+                     => *control_flow = ControlFlow::Exit,
                     WindowEvent::Resized(physical_size) => {
                         state.resize(*physical_size);
                     }
@@ -376,7 +381,7 @@ impl State {
 
         let mut chunks: Vec<Vec<Chunk>> = vec![];
 
-        let perlin = noise::Perlin::new(0);
+        let perlin = noise::Perlin::new(rand::thread_rng().gen());
 
         for x in 0..16 {
             let mut row: Vec<Chunk> = vec![];
@@ -441,6 +446,25 @@ impl State {
         //     }
         //     _ => {}
         // }
+        match event {
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::F11),
+                        ..
+                    },
+                ..
+            } => {
+                if self.window.fullscreen().is_some() {
+                    self.window.set_fullscreen(None);
+                } else {
+                    self.window
+                        .set_fullscreen(Some(Fullscreen::Borderless(self.window.current_monitor())))
+                }
+            }
+            _ => {}
+        };
         self.camera_controller
             .process_events(event, &mut self.window)
     }

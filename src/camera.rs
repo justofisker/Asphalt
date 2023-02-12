@@ -81,13 +81,10 @@ pub struct CameraController {
     is_backward_pressed: bool,
     is_left_pressed: bool,
     is_right_pressed: bool,
-    is_right_mouse_pressed: bool,
-    is_middle_mouse_pressed: bool,
     is_space_pressed: bool,
     is_shift_pressed: bool,
-    cursor_position: PhysicalPosition<f64>,
+    is_grabbed: bool,
     cursor_relative_motion: PhysicalPosition<f64>,
-    last_cursor_position: PhysicalPosition<f64>,
 }
 
 impl CameraController {
@@ -98,13 +95,10 @@ impl CameraController {
             is_backward_pressed: false,
             is_left_pressed: false,
             is_right_pressed: false,
-            is_right_mouse_pressed: false,
-            is_middle_mouse_pressed: false,
             is_space_pressed: false,
             is_shift_pressed: false,
-            cursor_position: (0, 0).into(),
+            is_grabbed: true,
             cursor_relative_motion: (0, 0).into(),
-            last_cursor_position: (0, 0).into(),
         }
     }
 
@@ -141,40 +135,41 @@ impl CameraController {
                         self.is_space_pressed = is_pressed;
                         true
                     }
-                    _ => false,
-                }
-            }
-            WindowEvent::MouseInput { state, button, .. } => {
-                let is_pressed = *state == ElementState::Pressed;
-                match button {
-                    MouseButton::Right => {
-                        self.is_right_mouse_pressed = is_pressed;
-                        window.set_cursor_visible(!is_pressed);
+                    VirtualKeyCode::Escape => {
                         if is_pressed {
-                            let _ = window.set_cursor_grab(CursorGrabMode::Locked);
-                        } else {
-                            let _ = window.set_cursor_grab(CursorGrabMode::None);
-                            let _ = window.set_cursor_position(self.cursor_position);
+                            self.is_grabbed = !self.is_grabbed;
+                            if self.is_grabbed {
+                                let _ = window.set_cursor_grab(CursorGrabMode::Confined);
+                                let inner_size = window.inner_size();
+                                let _ = window.set_cursor_position(PhysicalPosition::new(
+                                    inner_size.width / 2,
+                                    inner_size.height / 2,
+                                ));
+                            } else {
+                                let _ = window.set_cursor_grab(CursorGrabMode::None);
+                            }
+                            window.set_cursor_visible(!self.is_grabbed);
                         }
-                        true
-                    }
-                    MouseButton::Middle => {
-                        self.is_middle_mouse_pressed = is_pressed;
                         true
                     }
                     _ => false,
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
-                if !self.is_middle_mouse_pressed && !self.is_right_mouse_pressed {
-                    self.cursor_position = *position;
+                if self.is_grabbed {
+                    let inner_size = window.inner_size();
+
+                    self.cursor_relative_motion = (
+                        self.cursor_relative_motion.x + position.x - inner_size.width as f64 / 2.0,
+                        self.cursor_relative_motion.y + position.y - inner_size.height as f64 / 2.0,
+                    )
+                        .into();
+
+                    let _ = window.set_cursor_position(PhysicalPosition::new(
+                        inner_size.width / 2,
+                        inner_size.height / 2,
+                    ));
                 }
-                self.cursor_relative_motion = (
-                    self.cursor_relative_motion.x + position.x - self.last_cursor_position.x,
-                    self.cursor_relative_motion.y + position.y - self.last_cursor_position.y,
-                )
-                    .into();
-                self.last_cursor_position = *position;
                 true
             }
             WindowEvent::ModifiersChanged(state) => {
@@ -186,15 +181,13 @@ impl CameraController {
     }
 
     pub fn update_camera(&mut self, camera: &mut Camera, delta: Duration) {
-        if self.is_right_mouse_pressed {
-            camera.rotation.y =
-                Rad((camera.rotation.y.0 + self.cursor_relative_motion.x as f32 / 300.0) % 360.0);
-            camera.rotation.x = clamp(
-                camera.rotation.x - Rad(self.cursor_relative_motion.y as f32) / 300.0,
-                Deg(-85.0).into(),
-                Deg(85.0).into(),
-            );
-        }
+        camera.rotation.y =
+            Rad((camera.rotation.y.0 + self.cursor_relative_motion.x as f32 / 300.0) % 360.0);
+        camera.rotation.x = clamp(
+            camera.rotation.x - Rad(self.cursor_relative_motion.y as f32) / 300.0,
+            Deg(-85.0).into(),
+            Deg(85.0).into(),
+        );
         let mut movement = Vector3::<f32>::zero();
         if self.is_forward_pressed {
             movement.x += 1.0;

@@ -83,7 +83,6 @@ impl Chunk {
 
         for x in 0..CHUNK_SIZE_XZ {
             for z in 0..CHUNK_SIZE_XZ {
-
                 let xp = (chunk_position.x * CHUNK_SIZE_XZ as i32 + x as i32) as f64 / 10.0;
                 let zp = (chunk_position.y * CHUNK_SIZE_XZ as i32 + z as i32) as f64 / 10.0;
 
@@ -92,7 +91,7 @@ impl Chunk {
                 let height = 5 + (perlin_value * 10.0) as usize;
 
                 // println!("[{}, {}] {}", xp, zp, perlin_value);
-                
+
                 blocks[x][0][z] = Block::Bedrock;
                 for y in 1..height {
                     blocks[x][y][z] = Block::Stone;
@@ -226,7 +225,8 @@ impl Chunk {
                     if z == 0
                         && (!neighbor_south.is_some()
                             || !neighbor_south.unwrap().blocks[x][y][CHUNK_SIZE_XZ - 1].is_solid())
-                        || (z != 0 && !self.blocks[x][y][z - 1].is_solid()) {
+                        || (z != 0 && !self.blocks[x][y][z - 1].is_solid())
+                    {
                         // South
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::South);
                         #[rustfmt::skip]
@@ -240,7 +240,8 @@ impl Chunk {
                     if z == CHUNK_SIZE_XZ - 1
                         && (!neighbor_north.is_some()
                             || !neighbor_north.unwrap().blocks[x][y][0].is_solid())
-                        || (z != CHUNK_SIZE_XZ - 1 && !self.blocks[x][y][z + 1].is_solid()) {
+                        || (z != CHUNK_SIZE_XZ - 1 && !self.blocks[x][y][z + 1].is_solid())
+                    {
                         // North
                         let (tex_x, tex_y) = block.get_tex_coords(Direction::North);
                         #[rustfmt::skip]
@@ -280,7 +281,13 @@ impl Chunk {
         ));
     }
 
-    pub fn build_mesh_in_context(x: usize, z: usize, device: &Device, model_layout: &BindGroupLayout, chunks: &mut Vec<Vec<Chunk>>) {
+    pub fn build_mesh_in_context(
+        x: usize,
+        z: usize,
+        device: &Device,
+        model_layout: &BindGroupLayout,
+        chunks: &mut Vec<Vec<Chunk>>,
+    ) {
         let (before_x, after_x) = chunks.split_at_mut(x);
         let (at_x, after_x) = after_x.split_at_mut(1);
         let (before_z, after_z) = at_x[0].split_at_mut(z);
