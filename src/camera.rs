@@ -4,7 +4,7 @@ use cgmath::{
 use instant::Duration;
 use winit::{
     dpi::PhysicalPosition,
-    event::{ElementState, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent},
+    event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     window::{CursorGrabMode, Window},
 };
 

@@ -1,6 +1,3 @@
-use std::f32::consts::E;
-
-use cgmath::Vector3;
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     Device, RenderPass,
@@ -45,7 +42,7 @@ impl Mesh {
         });
 
         let mut index_buffer: Option<wgpu::Buffer> = None;
-        let mut item_count: u32 = 0;
+        let item_count: u32;
 
         if let Some(indices) = indices {
             index_buffer = Some(device.create_buffer_init(&BufferInitDescriptor {

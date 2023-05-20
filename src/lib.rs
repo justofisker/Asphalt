@@ -3,10 +3,9 @@ use std::{io::BufReader, num::NonZeroU32, vec};
 use camera::{Camera, CameraController, CameraUniform};
 use chunk::Chunk;
 use instant::{Duration, Instant};
-use noise::NoiseFn;
 use rand::Rng;
 use wgpu::{util::DeviceExt, BindGroupLayoutEntry};
-use wgpu_glyph::{ab_glyph::{self, FontArc}, GlyphBrushBuilder, GlyphBrush, Section, Text};
+use wgpu_glyph::{ab_glyph, GlyphBrushBuilder, GlyphBrush, Section, Text};
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -141,6 +140,7 @@ struct State {
     clear_color: wgpu::Color,
     glyph_brush: GlyphBrush<()>,
     staging_belt: wgpu::util::StagingBelt,
+    recent_frame_times: Vec<Duration>,
 }
 
 impl State {
@@ -197,7 +197,7 @@ impl State {
             format: surface_format,
             width: NonZeroU32::new(size.width).unwrap().into(),
             height: size.height,
-            present_mode: surface_caps.present_modes[0],
+            present_mode: wgpu::PresentMode::AutoNoVsync,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
         };
@@ -278,7 +278,7 @@ impl State {
             1000.0,
         );
 
-        let camera_controller = CameraController::new(7.5);
+        let camera_controller = CameraController::new(75.0);
 
         let mut camera_uniform = CameraUniform::new();
         camera_uniform.update_view_proj(&camera);
@@ -386,17 +386,18 @@ impl State {
 
         let perlin = noise::Perlin::new(rand::thread_rng().gen());
 
-        for x in 0..16 {
+        const CHUNK_ARR_SIZE: usize = 32;
+
+        for x in 0..CHUNK_ARR_SIZE as i32 {
             let mut row: Vec<Chunk> = vec![];
-            for y in 0..16 {
-                let mut chunk = chunk::Chunk::new((x - 8, y - 8).into(), &perlin);
-                row.push(chunk);
+            for y in 0..CHUNK_ARR_SIZE as i32 {
+                row.push(chunk::Chunk::new((x - CHUNK_ARR_SIZE as i32 / 2, y - CHUNK_ARR_SIZE as i32 / 2).into(), &perlin));
             }
             chunks.push(row);
         }
 
-        for x in 0..16 {
-            for z in 0..16 {
+        for x in 0..CHUNK_ARR_SIZE {
+            for z in 0..CHUNK_ARR_SIZE {
                 Chunk::build_mesh_in_context(x, z, &device, &model_bind_group_layout, &mut chunks);
             }
         }
@@ -432,6 +433,7 @@ impl State {
             },
             glyph_brush,
             staging_belt,
+            recent_frame_times: vec![],
         }
     }
 
@@ -538,10 +540,22 @@ impl State {
 
         let size = self.window.inner_size();
 
+        self.recent_frame_times.push(delta);
+        if self.recent_frame_times.len() >= 12 {
+            self.recent_frame_times.remove(0);
+        }
+
+        let mut fps: f64 = 0.0;
+        for dt in &self.recent_frame_times {
+            fps += dt.as_secs_f64();
+        }
+        fps = fps / self.recent_frame_times.len() as f64;
+        fps = 1.0 / fps;
+
         self.glyph_brush.queue(Section {
             screen_position: (20.0, 20.0),
             bounds: (size.width as f32, size.height as f32),
-            text: vec![Text::new(format!("FPS: {}", (1.0 / delta.as_secs_f64()) as u32).as_str())
+            text: vec![Text::new(format!("FPS: {}", fps as u32).as_str())
                 .with_color([1.0, 1.0, 1.0, 1.0])
                 .with_scale(40.0)],
             ..Default::default()

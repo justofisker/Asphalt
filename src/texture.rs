@@ -85,7 +85,6 @@ impl Texture {
         label: &str,
     ) -> Self {
         let size = wgpu::Extent3d {
-            // 2.
             width: config.width,
             height: config.height,
             depth_or_array_layers: 1,
@@ -104,7 +103,6 @@ impl Texture {
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            // 4.
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
