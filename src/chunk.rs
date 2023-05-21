@@ -131,13 +131,7 @@ impl Chunk {
             .into(),
         };
 
-        if let Some(_model_bind_group) = &self.model_bind_group {
-            if let Some(_model_buffer) = &self.model_buffer {
-                todo!()
-                // TODO: Use at least exisitng bind group. Possibly use same buffer as well if the new buffer is smaller.
-            }
-            unreachable!()
-        } else {
+        if self.model_bind_group.is_none() && self.model_buffer.is_none() {
             let model_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: None,
                 contents: bytemuck::cast_slice(&[model]),

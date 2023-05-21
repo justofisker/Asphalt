@@ -44,7 +44,7 @@ pub async fn run() {
     let _ = window.set_cursor_grab(winit::window::CursorGrabMode::Confined);
     window.set_cursor_visible(false);
 
-    window.set_ime_allowed(true);
+    // window.set_ime_allowed(true);
 
     if let Ok(img) = image::load_from_memory(include_bytes!("../res/icon/icon-256.png")) {
         window.set_window_icon(
@@ -188,7 +188,7 @@ impl State {
             .formats
             .iter()
             .copied()
-            .filter(|f| f.describe().srgb)
+            .filter(|f| f.is_srgb())
             .next()
             .unwrap_or(surface_caps.formats[0]);
 
