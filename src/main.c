@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <glad/glad.h>
 #include <cglm/cglm.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>
@@ -68,7 +68,7 @@ static void SetupGame()
     Text_EndCreateFont();
 
     int w, h;
-    SDL_GL_GetDrawableSize(g_window, &w, &h);
+    SDL_GetWindowSizeInPixels(g_window, &w, &h);
     OnResizeGameWindow(w, h);
 
     // Populate 5x5 chunk around play
@@ -256,18 +256,18 @@ static void HandleMovement(float delta)
             time_since_space = 0.f;
     }
     time_since_forward += delta;
-    if (Input_IsKeyJustPressed(SDLK_w) && !paused)
+    if (Input_IsKeyJustPressed(SDLK_W) && !paused)
     {
         if (time_since_forward < 0.25)
             sprint_mode = 1;
         else
             time_since_forward = 0.f;
     }
-    if (Input_IsKeyJustPressed(SDLK_r) && !paused)
+    if (Input_IsKeyJustPressed(SDLK_R) && !paused)
     {
         sprint_mode = 1;
     }
-    if (!Input_IsKeyPressedd(SDLK_w) || paused)
+    if (!Input_IsKeyPressedd(SDLK_W) || paused)
     {
         sprint_mode = 0;
     }
@@ -299,13 +299,13 @@ static void HandleMovement(float delta)
                 }
                 if (!paused) {
                     speed = 4.0f;
-                    if (Input_IsKeyPressedd(SDLK_a))
+                    if (Input_IsKeyPressedd(SDLK_A))
                         direction[0] -= 1.0f;
-                    if (Input_IsKeyPressedd(SDLK_d))
+                    if (Input_IsKeyPressedd(SDLK_D))
                         direction[0] += 1.0f;
-                    if (Input_IsKeyPressedd(SDLK_w))
+                    if (Input_IsKeyPressedd(SDLK_W))
                         direction[2] -= 1.0f;
-                    if (Input_IsKeyPressedd(SDLK_s))
+                    if (Input_IsKeyPressedd(SDLK_S))
                         direction[2] += 1.0f;
                     if (Input_IsKeyPressedd(SDLK_SPACE))
                     {
@@ -319,13 +319,13 @@ static void HandleMovement(float delta)
                 velocity[1] -= 24.0f * delta;
                 if (!paused) {
                     speed = 4.0f;
-                    if (Input_IsKeyPressedd(SDLK_a))
+                    if (Input_IsKeyPressedd(SDLK_A))
                         direction[0] -= 1.0f;
-                    if (Input_IsKeyPressedd(SDLK_d))
+                    if (Input_IsKeyPressedd(SDLK_D))
                         direction[0] += 1.0f;
-                    if (Input_IsKeyPressedd(SDLK_w))
+                    if (Input_IsKeyPressedd(SDLK_W))
                         direction[2] -= 1.0f;
-                    if (Input_IsKeyPressedd(SDLK_s))
+                    if (Input_IsKeyPressedd(SDLK_S))
                         direction[2] += 1.0f;
                     if (Input_IsKeyPressedd(SDLK_SPACE) && on_ground)
                         velocity[1] = 8.f;
@@ -344,17 +344,17 @@ static void HandleMovement(float delta)
             vec3 direction = { 0, 0, 0 };
             // Fly
             if (!paused) {
-                if (Input_IsKeyPressedd(SDLK_a))
+                if (Input_IsKeyPressedd(SDLK_A))
                     direction[0] -= 1.0f;
-                if (Input_IsKeyPressedd(SDLK_d))
+                if (Input_IsKeyPressedd(SDLK_D))
                     direction[0] += 1.0f;
-                if (Input_IsKeyPressedd(SDLK_w))
+                if (Input_IsKeyPressedd(SDLK_W))
                     direction[2] -= 1.0f;
-                if (Input_IsKeyPressedd(SDLK_s))
+                if (Input_IsKeyPressedd(SDLK_S))
                     direction[2] += 1.0f;
                 if (Input_IsKeyPressedd(SDLK_SPACE))
                     velocity[1] = 10.0f;
-                if (SDL_GetModState() & KMOD_SHIFT)
+                if (SDL_GetModState() & SDL_KMOD_SHIFT)
                     velocity[1] = -10.0f;
             }
             if (sprint_mode)
@@ -450,31 +450,28 @@ void gameLoop() {
     {
         switch (event.type)
         {
-        case SDL_QUIT:
+        case SDL_EVENT_QUIT:
             running = 0;
             break;
-        case SDL_KEYDOWN:
-        case SDL_KEYUP:
+        case SDL_EVENT_KEY_DOWN:
+        case SDL_EVENT_KEY_UP:
             if (!event.key.repeat)
-                Input_HandleKeyboard(event.key.keysym.sym, event.key.state);
+                Input_HandleKeyboard(event.key.key, event.key.down);
             break;
-        case SDL_MOUSEMOTION:
+        case SDL_EVENT_MOUSE_MOTION:
             Input_HandleMouseMotion(event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel);
             break;
-        case SDL_MOUSEBUTTONDOWN:
-        case SDL_MOUSEBUTTONUP:
-            Input_HandleMouseButton(event.button.button, event.button.state);
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+        case SDL_EVENT_MOUSE_BUTTON_UP:
+            Input_HandleMouseButton(event.button.button, event.button.down);
             break;
-        case SDL_MOUSEWHEEL:
+        case SDL_EVENT_MOUSE_WHEEL:
             Input_HandleMouseWheel(event.wheel.y);
             break;
-        case SDL_WINDOWEVENT:
-            if (event.window.event == SDL_WINDOWEVENT_RESIZED)
-            {
-                int w, h;
-                SDL_GL_GetDrawableSize(g_window, &w, &h);
-                OnResizeGameWindow(w, h);
-            }
+        case SDL_EVENT_WINDOW_RESIZED:
+            int w, h;
+            SDL_GetWindowSizeInPixels(g_window, &w, &h);
+            OnResizeGameWindow(w, h);
             break;
         }
     }
@@ -513,24 +510,24 @@ void gameLoop() {
             g_camera_rotation[1] = fmodf(g_camera_rotation[1], GLM_PIf * 2);
         }
 
-        if (Input_IsKeyJustPressed(SDLK_f))
+        if (Input_IsKeyJustPressed(SDLK_F))
         {
             fullscreen = !fullscreen;
             if (fullscreen)
             {
-                SDL_SetWindowFullscreen(g_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                SDL_SetWindowFullscreen(g_window, true);
             }
             else
             {
-                SDL_SetWindowFullscreen(g_window, 0);
+                SDL_SetWindowFullscreen(g_window, false);
                 // Resize Window Event not called on exiting fullscreen
                 int w, h;
-                SDL_GL_GetDrawableSize(g_window, &w, &h);
+                SDL_GetWindowSizeInPixels(g_window, &w, &h);
                 OnResizeGameWindow(w, h);
             }
         }
 
-        if (Input_IsKeyJustPressed(SDLK_p))
+        if (Input_IsKeyJustPressed(SDLK_P))
         {
             g_draw_aabb_debug = !g_draw_aabb_debug;
         }
@@ -597,12 +594,11 @@ static void setHighDPIMode(void)
     }
 }
 #endif // _WIN32
-
 int main(int argc, char* argv[])
 {
     srand(time(0));
 
-    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+    if (!SDL_Init(SDL_INIT_VIDEO))
     {
         SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
         return 1;
@@ -613,10 +609,8 @@ int main(int argc, char* argv[])
 #endif // _WIN32
 
     g_window = SDL_CreateWindow("Asphalt",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
         1280, 720,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
     if (g_window == NULL)
     {
@@ -634,7 +628,7 @@ int main(int argc, char* argv[])
         exit(0);
     }
 
-    if (!gladLoadGLES2Loader(SDL_GL_GetProcAddress))
+    if (!gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress))
     {
         SDL_Log("Failed to Load glad!\n");
         exit(0);

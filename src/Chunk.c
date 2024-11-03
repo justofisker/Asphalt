@@ -10,7 +10,7 @@
 #include <cglm/cglm.h>
 #include <cglm/plane.h>
 #include <glad/glad.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include "Block.h"
 #include <time.h>
 #include <math.h>

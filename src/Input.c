@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include "Globals.h"
 
@@ -106,13 +106,13 @@ void Input_RenderEnd()
         mouse_mode_updated = 0;
         if(mouse_mode == MOUSEMODE_CURSOR || !in_game)
         {
-            SDL_SetRelativeMouseMode(0);
+            SDL_SetWindowRelativeMouseMode(g_window, false);
             if(in_game)
                 SDL_WarpMouseInWindow(g_window, g_width / 2, g_height / 2);
         }
         else if (mouse_mode == MOUSEMODE_CAPTURED)
         {
-            SDL_SetRelativeMouseMode(1);
+            SDL_SetWindowRelativeMouseMode(g_window, true);
         }
     }
 }

@@ -201,3 +201,7 @@ void Util_RaycastToBlock(vec3 from, vec3 direction, float max_distance, char *hi
     (*result)[1] = 0;
     (*result)[2] = 0;
 }
+
+int mod(int a, int b) {
+    return (a % b + b) % b;
+}
