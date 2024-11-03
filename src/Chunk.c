@@ -117,10 +117,10 @@ static void Chunk_PushChunkMeshBuffers(Chunk *chunk)
     chunk->transparent_mesh->index_count = chunk->transparent_index_count;
     chunk->transparent_mesh->index_type = GL_UNSIGNED_INT;
 
-    free(chunk->solid_vertex_buffer);
-    free(chunk->solid_index_buffer);
-    free(chunk->transparent_vertex_buffer);
-    free(chunk->transparent_index_buffer);
+    SDL_free(chunk->solid_vertex_buffer);
+    SDL_free(chunk->solid_index_buffer);
+    SDL_free(chunk->transparent_vertex_buffer);
+    SDL_free(chunk->transparent_index_buffer);
     chunk->solid_vertex_buffer = 0;
     chunk->solid_index_buffer = 0;
     chunk->transparent_vertex_buffer = 0;
@@ -133,7 +133,7 @@ SDL_Thread *generation_thread;
 int Chunk_AsyncGenerateChunks(void* arg)
 {
 #ifndef __EMSCRIPTEN__
-    srand((unsigned int)time(0));
+    SDL_srand((unsigned int)time(0));
     while(1)
 #endif
     {
@@ -161,8 +161,12 @@ int Chunk_AsyncGenerateChunks(void* arg)
                 if(!Chunk_GetChunk(chunk_x, chunk_y))
                 {
                     Chunk *chunk = Chunk_CreateChunk(chunk_x, chunk_y);
-                    if(chunks[mod(chunk_x, CHUNK_ARR_SIZE)][mod(chunk_y, CHUNK_ARR_SIZE)]) WAIT_FOR_UNLOCK(chunks[mod(chunk_x, CHUNK_ARR_SIZE)][mod(chunk_y, CHUNK_ARR_SIZE)])
+                    Chunk *chunk_to_free = chunks[mod(chunk_x, CHUNK_ARR_SIZE)][mod(chunk_y, CHUNK_ARR_SIZE)];
+                    if (chunk_to_free)
+                        SDL_LockMutex(chunk_to_free->mutex);
                     Chunk_SetChunkArraySlot(chunk_x, chunk_y, chunk);
+                    if (chunk_to_free)
+                        SDL_UnlockMutex(chunk_to_free->mutex);
                     
                     Chunk_FillSuroundingChunk(chunk_x - 1, chunk_y);
                     Chunk_FillSuroundingChunk(chunk_x + 1, chunk_y);
@@ -195,8 +199,6 @@ int Chunk_AsyncGenerateChunks(void* arg)
         last_y = cur_y;
     }
 
-    SDL_Delay(50);
-
     }
 
     return 0;
@@ -205,7 +207,7 @@ int Chunk_AsyncGenerateChunks(void* arg)
 Chunk *Chunk_CreateChunk(int _x, int _y)
 {
     Chunk *chunk = malloc(sizeof(Chunk));
-    memset(chunk->blocks, 0, sizeof(chunk->blocks));
+    SDL_memset(chunk->blocks, 0, sizeof(chunk->blocks));
 
     chunk->x = _x;
     chunk->y = _y;
@@ -217,9 +219,9 @@ Chunk *Chunk_CreateChunk(int _x, int _y)
     chunk->solid_index_buffer = 0;
     chunk->transparent_vertex_buffer = 0;
     chunk->transparent_index_buffer = 0;
-    chunk->locked = 0;
+    chunk->mutex = SDL_CreateMutex();
 
-    memset(chunk->blocks, 0, sizeof(chunk->blocks));
+    SDL_memset(chunk->blocks, 0, sizeof(chunk->blocks));
     int x,y, z;
     for(x = 0; x < CHUNK_SIZE_XZ; ++x)
     {
@@ -250,13 +252,13 @@ Chunk *Chunk_CreateChunk(int _x, int _y)
 void Chunk_PopulateChunkMeshBuffers(Chunk *chunk)
 {
     if(chunk->solid_vertex_buffer)
-        free(chunk->solid_vertex_buffer);
+        SDL_free(chunk->solid_vertex_buffer);
     if(chunk->solid_index_buffer)
-        free(chunk->solid_index_buffer);
+        SDL_free(chunk->solid_index_buffer);
     if(chunk->transparent_vertex_buffer)
-        free(chunk->transparent_vertex_buffer);
+        SDL_free(chunk->transparent_vertex_buffer);
     if(chunk->transparent_index_buffer)
-        free(chunk->transparent_index_buffer);
+        SDL_free(chunk->transparent_index_buffer);
     chunk->solid_vertex_buffer = 0;
     chunk->solid_index_buffer = 0;
     chunk->transparent_vertex_buffer = 0;
@@ -587,7 +589,7 @@ void Chunk_PopulateChunkMeshBuffers(Chunk *chunk)
             }
         }
 
-        Index* indicies = malloc(sizeof(Index) * 6 * face_count);
+        Index* indicies = SDL_malloc(sizeof(Index) * 6 * face_count);
         for(i = 0; i < face_count; ++i)
         {
             indicies[i * 6 + 0] = 0 + 4 * i;
@@ -618,13 +620,15 @@ void Chunk_FreeChunk(Chunk *chunk)
     if(chunk->solid_index_buffer) free(chunk->solid_index_buffer);
     if(chunk->transparent_vertex_buffer) free(chunk->transparent_vertex_buffer);
     if(chunk->transparent_index_buffer) free(chunk->transparent_index_buffer);
-    free(chunk);
+    SDL_DestroyMutex(chunk->mutex);
+    
+    SDL_free(chunk);
 }
 
 void Chunk_SetupGenerationThread()
 {
-    memset(chunks, 0, sizeof(chunks));
-    memset(chunks_to_free, 0, sizeof(chunks_to_free));
+    SDL_memset(chunks, 0, sizeof(chunks));
+    SDL_memset(chunks_to_free, 0, sizeof(chunks_to_free));
 #ifdef __EMSCRIPTEN__
     //Chunk_AsyncGenerateChunks(0);
 #else
@@ -672,11 +676,10 @@ void Render_RenderChunks()
                     }
                     break;
                 case 1:
-                    if(chunk && chunk->create_mesh && !chunk->locked)
+                    if(chunk && chunk->create_mesh && SDL_TryLockMutex(chunk->mutex))
                     {
-                        chunk->locked = 1;
                         Chunk_PushChunkMeshBuffers(chunk);
-                        chunks[x][y]->locked = 0;
+                        SDL_UnlockMutex(chunk->mutex);
                     }
                     break;
                 case 2:

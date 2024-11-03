@@ -10,6 +10,7 @@
 #endif
 
 #include "Block.h"
+#include <SDL3/SDL.h>
 
 typedef struct _Vertex Vertex;
 typedef struct _Mesh Mesh;
@@ -31,7 +32,7 @@ typedef struct _Chunk
     unsigned int *transparent_index_buffer;
     int transparent_index_count;
     char create_mesh;
-    char locked;
+    SDL_Mutex *mutex;
     ivec3 aabb_solid[2];
     ivec3 aabb_transparent[2];
 } Chunk;
