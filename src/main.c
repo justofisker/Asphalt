@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <cglm/cglm.h>
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>
@@ -551,50 +552,7 @@ void gameLoop() {
 }
 
 
-#ifdef _WIN32
-#include <Windows.h>
-
-typedef enum D3_PROCESS_DPI_AWARENESS {
-    D3_PROCESS_DPI_UNAWARE = 0,
-    D3_PROCESS_SYSTEM_DPI_AWARE = 1,
-    D3_PROCESS_PER_MONITOR_DPI_AWARE = 2
-} YQ2_PROCESS_DPI_AWARENESS;
-
-static void setHighDPIMode(void)
-{
-    /* For Vista, Win7 and Win8 */
-    BOOL(WINAPI * SetProcessDPIAware)(void) = NULL;
-
-    /* Win8.1 and later */
-    HRESULT(WINAPI * SetProcessDpiAwareness)(D3_PROCESS_DPI_AWARENESS, dpiAwareness) = NULL;
-
-
-    HINSTANCE userDLL = LoadLibrary("USER32.DLL");
-
-    if (userDLL)
-    {
-        SetProcessDPIAware = (BOOL(WINAPI*)(void)) GetProcAddress(userDLL, "SetProcessDPIAware");
-    }
-
-
-    HINSTANCE shcoreDLL = LoadLibrary("SHCORE.DLL");
-
-    if (shcoreDLL)
-    {
-        SetProcessDpiAwareness = (HRESULT(WINAPI*)(YQ2_PROCESS_DPI_AWARENESS))
-            GetProcAddress(shcoreDLL, "SetProcessDpiAwareness");
-    }
-
-
-    if (SetProcessDpiAwareness) {
-        SetProcessDpiAwareness(D3_PROCESS_PER_MONITOR_DPI_AWARE);
-    }
-    else if (SetProcessDPIAware) {
-        SetProcessDPIAware();
-    }
-}
-#endif // _WIN32
-int main(int argc, char* argv[])
+int SDL_main(int argc, char* argv[])
 {
     srand(time(0));
 
@@ -603,10 +561,6 @@ int main(int argc, char* argv[])
         SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
         return 1;
     }
-
-#ifdef _WIN32
-    setHighDPIMode();
-#endif // _WIN32
 
     g_window = SDL_CreateWindow("Asphalt",
         1280, 720,
